@@ -1,0 +1,13 @@
+{
+  "name": "daily-puzzle",
+  "version": "2.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

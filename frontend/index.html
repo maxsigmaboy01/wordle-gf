@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Daily Puzzle</title>
+<link rel="icon" type="image/svg+xml" href="assets/daily_puzzle_icon.svg">
+<link rel="apple-touch-icon" href="assets/daily_puzzle_icon_180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<!-- theme -->
+<!-- styles --></head><body>
+
+<main id="love-puzzle" class="shell" data-mode="edit">
+  <div class="layout">
+    <section class="phone" id="puzzlePhone" aria-label="Daily Puzzle game">
+      <header class="app-head">
+        <div class="brand"><img alt="" width="34" height="34" src="embed:daily_puzzle_icon.svg">Daily Puzzle</div>
+        <div class="head-actions">
+          <button class="icon-btn" id="statsBtn" aria-label="Progress" title="Progress"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19V9h4v10m2 0V5h4v14m2 0v-7h4v7M2 19h20"/></svg></button>
+          <button class="icon-btn" id="helpBtn" aria-label="How to play" title="How to play"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 1 1 4 2c-1.2.9-1.6 1.4-1.6 2.7M12 17.5h.02"/></svg></button>
+          <button type="button" class="icon-btn" id="settingsBtn" aria-label="Settings" title="Settings"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m10 3-1 2.5-2 .8-2.5-.8-2 3.5L4 11v2l-1.5 2 2 3.5 2.5-.8 2 .8 1 2.5h4l1-2.5 2-.8 2.5.8 2-3.5-1.5-2v-2l1.5-2-2-3.5-2.5.8-2-.8L14 3z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+      </header>
+      <div class="instructions">
+        <h2>Find the hidden five-letter word.</h2>
+        <p id="puzzleNumber"></p>
+      </div>
+      <div class="meter"><span id="turnBadge"></span><span id="turnCounter"></span></div>
+      <div class="board" id="board" role="group" aria-label="Word guessing game board" tabindex="0"></div>
+      <div class="status-slot"><p class="status" id="status" role="status"></p></div>
+      <div class="keyboard" id="keyboard" role="group" aria-label="On-screen keyboard"></div>
+      <button type="button" class="btn" id="viewResult" hidden>View result</button>
+      <dialog class="result-dialog" id="resultDialog" aria-labelledby="resultTitle">
+        <div class="result-head">
+          <img class="dialog-gamepad" alt="" width="175" height="131" src="embed:gamepad_original_exact.png">
+          <h2 id="resultTitle">Game over</h2>
+          <button type="button" class="icon-btn" id="closeResult" aria-label="Close result">×</button>
+        </div>
+        <p class="result-note" id="resultNote"></p>
+        <div class="board result-board" id="resultBoard" role="group" aria-label="Puzzle result"></div>
+        <div class="reveal-card" id="revealCard" aria-live="polite" hidden>
+          <div class="mascot-line" aria-hidden="true">
+            <img class="mascot-dinosaur" alt="" width="126" height="150" src="embed:dino_original_exact.png">
+            <img class="mascot-chest" alt="" width="130" height="113" src="embed:chest_original_exact.png">
+          </div>
+          <p class="reveal-desc custom-ending" id="revealDesc"></p>
+          <div class="final-guess" id="finalGuess" hidden>
+            <p id="finalGuessLabel">Last guess</p>
+            <div id="finalGuessRow" role="group" aria-labelledby="finalGuessLabel"></div>
+          </div>
+          <div class="buttonrow result-actions">
+            <button type="button" class="btn primary" id="playAgain">Play again</button>
+            <button type="button" class="btn" id="shareResult">Share</button>
+          </div>
+          <p id="shareNotice" class="share-notice" role="status"></p>
+          <input id="shareFallback" class="share-fallback" aria-label="Shareable score" readonly hidden>
+          <button type="button" class="report-button" id="reportScam">Report this scam</button>
+          <p class="complaint" id="complaint" role="status" hidden></p>
+        </div>
+      </dialog>
+      <dialog class="help-dialog" id="help" aria-labelledby="helpHeading">
+        <img class="dialog-gamepad" id="helpGamepad" alt="" width="175" height="131" src="embed:gamepad_original_exact.png">
+        <h2 id="helpHeading"></h2>
+        <p id="helpText"></p>
+        <div class="help-examples" id="helpExamples" aria-label="Example word feedback" role="group"></div>
+        <button type="button" class="btn" id="themeBtn" aria-pressed="false" hidden>Dark mode</button>
+        <button type="button" class="btn primary" id="helpClose">Got it</button>
+      </dialog>
+      <dialog class="stats-dialog" id="statsDialog" aria-labelledby="statsHeading">
+        <h2 id="statsHeading">Your progress</h2>
+        <dl id="statsMetrics" class="stats-grid"></dl>
+        <h3>Guess distribution</h3>
+        <ol id="statsChart" class="distribution" aria-label="Completed rounds by number of guesses"></ol>
+        <button type="button" class="btn" id="statsClose">Back to puzzle</button>
+      </dialog>
+    </section>
+
+    <aside class="panel" id="editor" lang="th">
+      <h2>ตั้งค่าเกม</h2>
+      <form id="answerForm">
+        <div class="field" style="margin-top:12px">
+          <label for="answerInput">คำตอบของเกม</label>
+          <input class="word-input" id="answerInput" type="text" maxlength="5" pattern="[A-Za-z]{5}" autocomplete="off" spellcheck="false" aria-describedby="answerHint" placeholder="HEART">
+        </div>
+        <p id="answerHint">ใช้ A–Z จำนวน 5 ตัวแล้วกดใช้คำตอบเพื่อเริ่มเกมใหม่ ทายถูกแล้วจะเปิดข้อความทันที เว้นว่างเพื่อใช้โหมดที่เปิดข้อความเมื่อครบ 6 ครั้ง</p>
+        <button type="submit" class="btn">ใช้คำตอบแล้วเริ่มใหม่</button>
+        <p id="answerStatus" role="status" hidden></p>
+      </form>
+      <div class="setting-group">
+        <h2>ข้อความเซอร์ไพรส์</h2>
+        <p>ใส่ได้ 6 บรรทัด บรรทัดละไม่เกิน 5 ตัว ใช้ A–Z, ♡ หรือ ♥</p>
+        <div class="editor-grid" id="editorGrid"></div>
+        <div class="presetrow">
+          <button type="button" class="preset" data-preset="safe">YOU ARE MY SAFE PLACE</button>
+          <button type="button" class="preset" data-preset="love">I LOVE YOU SO MUCH</button>
+          <button type="button" class="preset" data-preset="happy">YOU MAKE ME SO HAPPY</button>
+        </div>
+        <div class="field" style="margin-top:14px">
+          <label for="endingInput">ข้อความใต้กระดาน</label>
+          <input id="endingInput" type="text" maxlength="130">
+        </div>
+        <div class="buttonrow">
+          <button type="button" class="btn" id="previewBtn">ดูตัวอย่างเฉลย</button>
+          <button type="button" class="btn" id="resetBtn">เริ่มเกมใหม่</button>
+          <button type="button" class="btn primary" id="downloadCustomBtn">ดาวน์โหลดไฟล์เกมสำหรับส่ง</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+</main>
+<!-- app --></body></html>

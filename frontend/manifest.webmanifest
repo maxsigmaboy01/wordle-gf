@@ -1,7 +1,7 @@
 {
   "name": "Daily Puzzle",
   "short_name": "Daily Puzzle",
-  "start_url": "./romantic_word_puzzle_for_your_partner.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f2f5ef",
   "theme_color": "#f2f5ef",
