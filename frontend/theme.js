@@ -3,7 +3,8 @@
   const systemTheme = matchMedia('(prefers-color-scheme: dark)');
   const storageKey = 'daily-puzzle-theme';
   let preference;
-  try { preference = localStorage.getItem(storageKey); } catch {}
+  const native = window.DailyPuzzleNative;
+  try { preference = native ? native.get(storageKey) : localStorage.getItem(storageKey); } catch {}
   if (preference !== 'dark' && preference !== 'light') preference = null;
 
   function applyTheme() {
@@ -19,7 +20,10 @@
     applyTheme();
     button.addEventListener('click', () => {
       preference = root.dataset.theme === 'dark' ? 'light' : 'dark';
-      try { localStorage.setItem(storageKey, preference); } catch {}
+      try {
+        if (native) native.set(storageKey, preference);
+        else localStorage.setItem(storageKey, preference);
+      } catch {}
       applyTheme();
     });
   });

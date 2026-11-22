@@ -339,6 +339,10 @@ $('shareResult').addEventListener('click', async () => {
   const text = 'Daily Puzzle #' + (100 + puzzleId % 900) +
     ' · Level ' + level + '/' + LEVEL_COUNT + ' · ' + score + '/' + rows;
   try {
+    if (window.DailyPuzzleNative) {
+      window.DailyPuzzleNative.share(text);
+      return;
+    }
     if (navigator.share) {
       await navigator.share({ text });
       return;

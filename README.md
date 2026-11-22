@@ -30,3 +30,7 @@ The default answers are `PLANT`, `CLOUD`, `BRAVE`, and `SPARK` in that order. Ed
 Run `npm run build` after editing any source or dictionary. The generated `dist/` folder is ignored in Git. The player HTML embeds the rules, dictionary, and reveal images.
 
 The surprise mode prefers a feedback pattern that leaves a plausible non-winning answer. In the rare case that the only compatible answer is guessed, it accepts the solve so previous clues stay coherent. Completed rounds and draft guesses are saved per puzzle in the current browser. Shared scores omit the secret message.
+
+## iPhone app
+
+Open the SwiftUI project in Xcode to build and run the offline game on an iPhone. See the [iOS setup](ios/README.md).
