@@ -1,6 +1,6 @@
 # Daily Puzzle
 
-A five-letter puzzle with a surprise ending. The editor builds a single player HTML file that works offline.
+Five five-letter puzzles in sequence, with a surprise on level 3. The editor builds a single player HTML file that works offline.
 
 ## Run locally
 
@@ -12,9 +12,11 @@ npm run build
 
 Open `dist/index.html` in a browser. For the web manifest and Home Screen icon, serve the `dist/` directory over HTTP or HTTPS.
 
-1. Leave the answer blank for the surprise mode or choose a five-letter English answer for a fixed puzzle.
-2. Edit the six reveal lines and caption. Preview the result.
-3. Download the standalone player HTML. It shows no editor, and its reveal text appears at the end of the round.
+1. Choose five-letter English answers for levels 1, 2, 4, and 5. Each is an ordinary puzzle with six guesses.
+2. Edit the six reveal lines and caption for level 3. Use the preview to check the surprise.
+3. Download the standalone player HTML. It starts on level 1 and saves its current level and guesses in the browser. A normal level can be retried after a loss or completed to continue.
+
+The default answers are `PLANT`, `CLOUD`, `BRAVE`, and `SPARK` in that order. Edit [levels.json](backend/data/levels.json) to change the defaults, keeping the third slot `null` for the surprise.
 
 ## Project layout
 

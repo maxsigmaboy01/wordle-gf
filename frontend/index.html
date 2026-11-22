@@ -19,7 +19,11 @@
       </header>
       <div class="instructions">
         <h2>Find the hidden five-letter word.</h2>
-        <p id="puzzleNumber"></p>
+        <div class="level-line">
+          <strong id="levelNumber" aria-live="polite"></strong>
+          <progress id="levelTrack" aria-label="Level progress"></progress>
+          <span id="puzzleNumber"></span>
+        </div>
       </div>
       <div class="meter"><span id="turnBadge"></span><span id="turnCounter"></span></div>
       <div class="board" id="board" role="group" aria-label="Word guessing game board" tabindex="0"></div>
@@ -40,19 +44,16 @@
             <img class="mascot-chest" alt="" width="130" height="113" src="embed:chest_original_exact.png">
           </div>
           <p class="reveal-desc custom-ending" id="revealDesc"></p>
-          <div class="final-guess" id="finalGuess" hidden>
-            <p id="finalGuessLabel">Last guess</p>
-            <div id="finalGuessRow" role="group" aria-labelledby="finalGuessLabel"></div>
-          </div>
-          <div class="buttonrow result-actions">
-            <button type="button" class="btn primary" id="playAgain">Play again</button>
-            <button type="button" class="btn" id="shareResult">Share</button>
-          </div>
-          <p id="shareNotice" class="share-notice" role="status"></p>
-          <input id="shareFallback" class="share-fallback" aria-label="Shareable score" readonly hidden>
           <button type="button" class="report-button" id="reportScam">Report this scam</button>
           <p class="complaint" id="complaint" role="status" hidden></p>
         </div>
+        <div class="buttonrow result-actions" id="resultActions" hidden>
+          <button type="button" class="btn primary" id="continueGame">Next level</button>
+          <button type="button" class="btn" id="retryLevel" hidden>Retry level</button>
+          <button type="button" class="btn" id="shareResult">Share</button>
+        </div>
+        <p id="shareNotice" class="share-notice" role="status"></p>
+        <input id="shareFallback" class="share-fallback" aria-label="Shareable score" readonly hidden>
       </dialog>
       <dialog class="help-dialog" id="help" aria-labelledby="helpHeading">
         <img class="dialog-gamepad" id="helpGamepad" alt="" width="175" height="131" src="embed:gamepad_original_exact.png">
@@ -74,16 +75,13 @@
     <aside class="panel" id="editor" lang="th">
       <h2>ตั้งค่าเกม</h2>
       <form id="answerForm">
-        <div class="field" style="margin-top:12px">
-          <label for="answerInput">คำตอบของเกม</label>
-          <input class="word-input" id="answerInput" type="text" maxlength="5" pattern="[A-Za-z]{5}" autocomplete="off" spellcheck="false" aria-describedby="answerHint" placeholder="HEART">
-        </div>
-        <p id="answerHint">ใช้ A–Z จำนวน 5 ตัวแล้วกดใช้คำตอบเพื่อเริ่มเกมใหม่ ทายถูกแล้วจะเปิดข้อความทันที เว้นว่างเพื่อใช้โหมดที่เปิดข้อความเมื่อครบ 6 ครั้ง</p>
-        <button type="submit" class="btn">ใช้คำตอบแล้วเริ่มใหม่</button>
+        <p>ตั้งคำตอบ 5 ตัวอักษรสำหรับด่าน 1, 2, 4 และ 5 ด่าน 3 ใช้ข้อความเซอร์ไพรส์ด้านล่าง</p>
+        <div class="editor-grid level-fields" id="levelFields"></div>
+        <button type="submit" class="btn">ใช้คำตอบและเริ่มจากด่าน 1</button>
         <p id="answerStatus" role="status" hidden></p>
       </form>
       <div class="setting-group">
-        <h2>ข้อความเซอร์ไพรส์</h2>
+        <h2>ข้อความเซอร์ไพรส์ด่าน 3</h2>
         <p>ใส่ได้ 6 บรรทัด บรรทัดละไม่เกิน 5 ตัว ใช้ A–Z, ♡ หรือ ♥</p>
         <div class="editor-grid" id="editorGrid"></div>
         <div class="presetrow">
@@ -96,9 +94,9 @@
           <input id="endingInput" type="text" maxlength="130">
         </div>
         <div class="buttonrow">
-          <button type="button" class="btn" id="previewBtn">ดูตัวอย่างเฉลย</button>
+          <button type="button" class="btn" id="previewBtn">ดูตัวอย่างด่าน 3</button>
           <button type="button" class="btn" id="resetBtn">เริ่มเกมใหม่</button>
-          <button type="button" class="btn primary" id="downloadCustomBtn">ดาวน์โหลดไฟล์เกมสำหรับส่ง</button>
+          <button type="button" class="btn primary" id="downloadCustomBtn">ดาวน์โหลดเกม 5 ด่าน</button>
         </div>
       </div>
     </aside>

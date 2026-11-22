@@ -93,7 +93,17 @@ button { cursor: pointer; }
 .icon-btn:hover, .icon-btn[aria-pressed="true"] { background: var(--key-bg); }
 .instructions { margin: 16px 0 14px; text-align: center; }
 .instructions h2 { margin: 0 0 3px; font-size: 1rem; letter-spacing: -.02em; }
-.instructions p { margin: 0; font-size: .88rem; color: var(--muted); }
+.level-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: .76rem;
+}
+.level-line strong { color: var(--ink); }
+.level-line progress { width: 48px; height: 6px; accent-color: var(--accent); }
 .meter {
   width: min(100%, var(--board-width, 324px));
   display: flex;
@@ -218,10 +228,6 @@ button { cursor: pointer; }
 .complaint, .share-notice { margin: 5px 0 0; color: var(--muted); font-size: .81rem; }
 .share-notice:empty { display: none; }
 .share-fallback { width: 100%; margin-top: 7px; padding: 6px; }
-.final-guess { margin-top: 8px; }
-.final-guess p { margin: 0 0 4px; font-size: .81rem; color: var(--muted); }
-.final-guess .guess-row { width: min(100%, 150px); margin-inline: auto; }
-.final-guess .tile { font-size: .9rem; }
 .panel { padding: 20px; }
 .panel h2 { margin: 0; font-size: 1.16rem; }
 .panel p { margin: 6px 0 12px; color: var(--muted); font-size: .88rem; line-height: 1.55; }
@@ -241,6 +247,7 @@ button { cursor: pointer; }
 .btn.primary { background: var(--ink); border-color: var(--ink); color: var(--surface); }
 .btn.primary:hover { background: var(--button-hover); }
 .editor-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-block: 12px; }
+.editor-grid.level-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .field { display: grid; gap: 4px; }
 .field label { color: var(--muted); font-size: .88rem; font-weight: 650; }
 .field input { width: 100%; padding: 8px; border: 1px solid var(--control-line); border-radius: 7px; background: var(--input); color: var(--ink); }

@@ -1,4 +1,5 @@
 import { ATTEMPTS as rows, WORD_LENGTH as len, createPuzzle } from '../backend/game.js';
+import { LEVEL_COUNT, SURPRISE_LEVEL, campaignAnswers, nextLevel, resumeLevel } from '../backend/campaign.js';
 import words from '../backend/data/words.txt';
 import answers from '../backend/data/answers.txt';
 import { readStorage, roundIdentifier, saveStorage } from './storage.js';
@@ -18,10 +19,10 @@ const settings = JSON.parse(root.dataset.puzzleConfig || '{}');
 const defaultEnding = "I just wanted to say: I love you. ♡";
 let message = settings.message || presets.safe.slice();
 let ending = settings.ending ?? defaultEnding;
-let answer = settings.answer || '';
-let round, roundId, puzzleId, isRevealed, isBusy;
+const editorAnswersKey = 'daily-puzzle-editor-levels';
+let levelAnswers = campaignAnswers(settings.answers ?? ($('editor') ? readStorage(editorAnswersKey) : null), puzzle.isWord);
+let level, round, roundId, puzzleId, isBusy;
 const timers = new Set();
-let previewing = false;
 const histories = new Map();
 
 function schedule(callback, delay) {
@@ -121,7 +122,7 @@ function rejectGuess(text) {
 }
 
 function inputKey(key) {
-  if (isRevealed || isBusy || round.finished()) return;
+  if (resultDialog.open || isBusy || round.finished()) return;
   if (key === '↵' || key === 'ENTER') {
     const row = round.guesses.length;
     const error = round.submit();
@@ -158,37 +159,64 @@ function finishRound() {
   isBusy = true;
   recordResult();
   setStatus(round.solved() ? 'Puzzle solved.' : 'Better luck next time.');
-  schedule(() => reveal(), 1020);
+  schedule(showStageResult, level === SURPRISE_LEVEL ? 1020 : 400);
 }
 
-function reveal(preview = false) {
+function prepareResult(preview) {
   clearTimers();
-  previewing = preview;
-  isRevealed = true;
-  isBusy = true;
   const { guesses, colors } = round;
-  const solved = !preview && round.solved();
-  $('resultTitle').textContent = solved ? 'Puzzle solved' : 'Game over';
-  $('resultNote').textContent = solved ? 'Nice work.' : 'Better luck next time.';
-  $('revealDesc').textContent = ending;
-  $('revealDesc').hidden = !ending;
-  $('finalGuess').hidden = !answer || !round.finished() || preview;
-  $('finalGuessRow').replaceChildren();
-  if (!$('finalGuess').hidden) {
-    $('finalGuessRow').appendChild(makeRow(guesses.at(-1), colors.at(-1)));
-  }
+  $('revealCard').hidden = true;
+  $('resultActions').hidden = true;
+  $('resultNote').hidden = false;
   $('complaint').textContent = '';
   $('complaint').hidden = true;
+  $('reportScam').disabled = false;
   $('shareNotice').textContent = '';
   $('shareFallback').hidden = true;
   $('shareFallback').value = '';
-  $('shareResult').hidden = preview;
-  $('reportScam').disabled = false;
-  $('revealCard').hidden = true;
-  $('closeResult').disabled = true;
+  $('resultBoard').setAttribute('aria-label', 'Puzzle result');
   $('resultBoard').replaceChildren(...Array.from({ length: rows }, (_, index) => (
-    makeRow(guesses[index] || '', colors[index])
+    makeRow(preview ? '' : guesses[index] || '', preview ? null : colors[index])
   )));
+}
+
+function completeResult({ preview = false, canRetry = false } = {}) {
+  isBusy = false;
+  $('closeResult').disabled = false;
+  $('viewResult').hidden = !round.finished();
+  $('resultActions').hidden = preview;
+  $('continueGame').textContent = level === LEVEL_COUNT ? 'Play again' : 'Next level';
+  $('retryLevel').hidden = !canRetry;
+  $('closeResult').focus({ preventScroll: true });
+}
+
+function showStageResult() {
+  if (level === SURPRISE_LEVEL) {
+    reveal();
+    return;
+  }
+
+  prepareResult(false);
+  const won = round.solved();
+  const attempts = round.guesses.length;
+  $('resultTitle').textContent = level === LEVEL_COUNT ? 'Five levels complete' : won ? 'Level cleared' : 'Out of guesses';
+  $('resultNote').textContent = won
+    ? 'Solved in ' + attempts + (attempts === 1 ? ' guess.' : ' guesses.')
+    : 'The word was ' + levelAnswers[level - 1] + '.';
+  $('closeResult').disabled = false;
+  if (!resultDialog.open) resultDialog.showModal();
+  completeResult({ canRetry: !won });
+}
+
+function reveal(preview = false) {
+  prepareResult(preview);
+  isBusy = true;
+  $('resultTitle').textContent = preview ? 'Level 3 preview' : 'Game over';
+  $('resultNote').textContent = preview ? '' : 'Better luck next time.';
+  $('resultNote').hidden = preview;
+  $('revealDesc').textContent = ending;
+  $('revealDesc').hidden = !ending;
+  $('closeResult').disabled = true;
   if (!resultDialog.open) resultDialog.showModal();
   message.forEach((line, index) => {
     flipRow($('resultBoard').children[index], makeRow(line, null, index), index * 155);
@@ -197,29 +225,24 @@ function reveal(preview = false) {
   function finishReveal() {
     $('resultTitle').textContent = 'You got baited, respectfully.';
     $('revealCard').hidden = false;
-    $('closeResult').disabled = false;
-    $('viewResult').hidden = false;
     $('resultBoard').setAttribute('aria-label', 'Revealed message');
     $('resultNote').hidden = true;
-    isBusy = false;
-    if (document.activeElement === resultDialog) $('closeResult').focus({ preventScroll: true });
+    completeResult({ preview });
   }
-  $('resultBoard').setAttribute('aria-label', 'Puzzle result');
-  $('resultNote').hidden = false;
   if (reducedMotion.matches) finishReveal();
   else schedule(finishReveal, 1210);
 }
 
 function identity() {
-  const data = JSON.stringify([root.dataset.mode, answer,
-    root.dataset.mode === 'play' ? [message, ending] : null]);
+  const data = JSON.stringify([root.dataset.mode, levelAnswers,
+    root.dataset.mode === 'play' ? [settings.session, message, ending] : null]);
   let hash = 2166136261;
   for (const char of data) hash = Math.imul(hash ^ char.codePointAt(0), 16777619);
   return hash >>> 0;
 }
 
 function progressKey() {
-  return 'daily-puzzle-v2-' + puzzleId;
+  return 'daily-puzzle-campaign-v1-' + puzzleId;
 }
 
 function historyKey() {
@@ -239,6 +262,7 @@ function history() {
 function saveProgress() {
   saveStorage(progressKey(), {
     id: roundId,
+    level,
     guesses: round.guesses,
     typed: round.typed
   });
@@ -247,31 +271,37 @@ function saveProgress() {
 function recordResult() {
   const results = history();
   if (results.some(result => result.id === roundId)) return;
-  results.push({ id: roundId, attempts: round.guesses.length, solved: round.solved() });
+  results.push({ id: roundId, level, attempts: round.guesses.length, solved: round.solved() });
   histories.set(historyKey(), results);
   saveStorage(historyKey(), results);
 }
 
-function reset(restore = false) {
+function startLevel(number, saved = null) {
   clearTimers();
+  $('viewResult').hidden = true;
   if (resultDialog.open) resultDialog.close();
-  round = puzzle.createRound(answer);
+  level = number;
+  round = puzzle.createRound(levelAnswers[level - 1] || '');
   isBusy = false;
-  isRevealed = false;
-  previewing = false;
-  puzzleId = identity();
-  const saved = restore ? readStorage(progressKey()) : null;
   roundId = typeof saved?.id === 'string' ? saved.id : roundIdentifier();
   round.restore(saved);
   saveProgress();
   $('puzzleNumber').textContent = 'Puzzle No. ' + (100 + puzzleId % 900);
-  $('viewResult').hidden = true;
+  $('levelNumber').textContent = 'Level ' + level + ' of ' + LEVEL_COUNT;
+  $('levelTrack').max = LEVEL_COUNT;
+  $('levelTrack').value = level;
   setStatus('');
   updateUI();
   if (round.finished()) finishRound();
 }
 
-$('viewResult').addEventListener('click', () => reveal(previewing));
+function resetCampaign(restore = false) {
+  puzzleId = identity();
+  const saved = restore ? readStorage(progressKey()) : null;
+  startLevel(resumeLevel(saved), saved);
+}
+
+$('viewResult').addEventListener('click', showStageResult);
 $('closeResult').addEventListener('click', () => resultDialog.close());
 resultDialog.addEventListener('cancel', event => {
   if (isBusy) event.preventDefault();
@@ -279,8 +309,12 @@ resultDialog.addEventListener('cancel', event => {
 resultDialog.addEventListener('close', () => {
   if (!$('viewResult').hidden) $('viewResult').focus({ preventScroll: true });
 });
-$('playAgain').addEventListener('click', () => {
-  reset();
+$('continueGame').addEventListener('click', () => {
+  startLevel(nextLevel(level));
+  board.focus();
+});
+$('retryLevel').addEventListener('click', () => {
+  startLevel(level);
   board.focus();
 });
 $('reportScam').addEventListener('click', event => {
@@ -291,7 +325,8 @@ $('reportScam').addEventListener('click', event => {
 
 $('shareResult').addEventListener('click', async () => {
   const score = round.solved() ? round.guesses.length : 'X';
-  const text = 'Daily Puzzle #' + (100 + puzzleId % 900) + ' · ' + score + '/' + rows;
+  const text = 'Daily Puzzle #' + (100 + puzzleId % 900) +
+    ' · Level ' + level + '/' + LEVEL_COUNT + ' · ' + score + '/' + rows;
   try {
     if (navigator.share) {
       await navigator.share({ text });
@@ -336,17 +371,47 @@ function renderEditor() {
   }
 }
 
-function validateAnswer(input) {
-  const word = input.value.toUpperCase();
-  input.setCustomValidity(/^[A-Z]{5}$/.test(word) && !puzzle.isWord(word)
-    ? 'เลือกคำภาษาอังกฤษที่มีในพจนานุกรม'
-    : '');
-  return input.reportValidity();
+function editLevelAnswers() {
+  const result = levelAnswers.slice();
+  for (const input of $('levelFields').querySelectorAll('input')) {
+    const word = input.value.toUpperCase();
+    input.setCustomValidity(/^[A-Z]{5}$/.test(word) && !puzzle.isWord(word)
+      ? 'เลือกคำภาษาอังกฤษที่มีในพจนานุกรม'
+      : '');
+    if (!input.reportValidity()) return null;
+    result[Number(input.dataset.index)] = word;
+  }
+  return result;
+}
+
+function renderLevelEditor() {
+  const fields = $('levelFields');
+  levelAnswers.forEach((word, index) => {
+    if (word === null) return;
+    const field = el('div', 'field');
+    const label = el('label', '', 'ด่าน ' + (index + 1));
+    const input = el('input', 'word-input');
+    input.id = 'levelAnswer' + (index + 1);
+    input.dataset.index = index;
+    input.value = word;
+    input.maxLength = len;
+    input.pattern = '[A-Za-z]{5}';
+    input.required = true;
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    input.addEventListener('input', () => {
+      input.setCustomValidity('');
+      $('answerStatus').hidden = true;
+    });
+    label.htmlFor = input.id;
+    field.append(label, input);
+    fields.appendChild(field);
+  });
 }
 
 function downloadGame() {
-  const answerInput = $('answerInput');
-  if (!validateAnswer(answerInput)) return;
+  const answers = editLevelAnswers();
+  if (!answers) return;
 
   const copy = document.documentElement.cloneNode(true);
   delete copy.dataset.theme;
@@ -355,13 +420,14 @@ function downloadGame() {
   game.dataset.puzzleConfig = JSON.stringify({
     message,
     ending,
-    answer: answerInput.value.toUpperCase()
+    answers,
+    session: roundIdentifier()
   });
   game.querySelector('#editor').remove();
   copy.querySelector('[rel="icon"]').href = game.querySelector('.brand img').getAttribute('src');
   copy.querySelector('[rel="apple-touch-icon"]')?.remove();
   copy.querySelector('[rel="manifest"]')?.remove();
-  for (const id of ['board', 'keyboard', 'resultBoard', 'revealDesc', 'finalGuessRow',
+  for (const id of ['board', 'keyboard', 'resultBoard', 'revealDesc', 'levelNumber', 'puzzleNumber', 'turnBadge', 'turnCounter',
     'resultNote', 'complaint', 'shareNotice', 'status', 'helpHeading', 'helpText', 'helpExamples', 'statsMetrics', 'statsChart']) {
     game.querySelector('#' + id).replaceChildren();
   }
@@ -371,8 +437,11 @@ function downloadGame() {
   game.querySelector('#themeBtn').hidden = true;
   delete game.querySelector('#status').dataset.tone;
   game.querySelector('#resultDialog').removeAttribute('open');
+  game.querySelector('#resultTitle').textContent = 'Game over';
+  game.querySelector('#levelTrack').value = 1;
   game.querySelector('#viewResult').hidden = true;
   game.querySelector('#revealCard').hidden = true;
+  game.querySelector('#resultActions').hidden = true;
   game.querySelector('#complaint').hidden = true;
   const html = '<!doctype html>\n' + copy.outerHTML;
   const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
@@ -392,7 +461,7 @@ function openHelp(showTheme = false) {
   $('helpHeading').textContent = showTheme ? 'Settings' : 'How to play';
   $('helpText').textContent = showTheme
     ? 'Choose a theme for this browser.'
-    : 'Guess the hidden five-letter word in six tries. Green marks the right spot, yellow marks a different spot, and gray means the letter is absent.';
+    : 'Each level gives you six tries to guess a five-letter word. Green marks the right spot, yellow marks a different spot, and gray means the letter is absent.';
   $('themeBtn').hidden = !showTheme;
   $('helpExamples').hidden = showTheme;
   $('helpGamepad').hidden = showTheme;
@@ -420,7 +489,7 @@ document.addEventListener('keydown', event => {
   const key = thaiLetterKey ? event.code.slice(3) : event.key.toUpperCase();
   if (!/^[A-Z]$/.test(key) && key !== 'ENTER' && key !== 'BACKSPACE') return;
   if (key === 'ENTER' && target.closest?.('button, a[href]')) return;
-  if (isRevealed || isBusy || round.finished()) return;
+  if (resultDialog.open || isBusy || round.finished()) return;
   event.preventDefault();
   if (key === 'ENTER' && event.repeat) return;
   if (/^[A-Z]$/.test(key) && target.closest?.('button, a[href]')) {
@@ -430,27 +499,24 @@ document.addEventListener('keydown', event => {
 });
 
 if ($('editor')) {
-  const answerInput = $('answerInput');
   const answerStatus = $('answerStatus');
-  answerInput.value = answer;
+  renderLevelEditor();
   $('answerForm').addEventListener('submit', event => {
     event.preventDefault();
-    if (!validateAnswer(answerInput)) return;
-    answer = answerInput.value.toUpperCase();
-    answerStatus.textContent = answer ? 'ใช้คำตอบที่ตั้งไว้แล้ว' : 'ใช้คำใบ้แบบเดิมแล้ว';
+    const answers = editLevelAnswers();
+    if (!answers) return;
+    levelAnswers = answers;
+    saveStorage(editorAnswersKey, answers);
+    answerStatus.textContent = 'ใช้คำตอบที่ตั้งไว้แล้ว';
     answerStatus.hidden = false;
-    reset();
+    resetCampaign();
     board.focus();
-  });
-  answerInput.addEventListener('input', () => {
-    answerInput.setCustomValidity('');
-    answerStatus.hidden = true;
   });
 
   $('endingInput').value = ending;
   $('endingInput').addEventListener('input', event => {
     ending = event.target.value;
-    if (isRevealed) $('revealDesc').textContent = ending;
+    if (resultDialog.open) $('revealDesc').textContent = ending;
   });
   for (const button of root.querySelectorAll('[data-preset]')) {
     button.addEventListener('click', () => {
@@ -466,11 +532,11 @@ if ($('editor')) {
       if (resultDialog.open) reveal(true);
     });
   }
-  $('previewBtn').addEventListener('click', () => reveal(true));
-  $('resetBtn').addEventListener('click', () => { reset(); board.focus(); });
+  $('previewBtn').addEventListener('click', () => { if (!isBusy) reveal(true); });
+  $('resetBtn').addEventListener('click', () => { resetCampaign(); board.focus(); });
   $('downloadCustomBtn').addEventListener('click', downloadGame);
   renderEditor();
 }
 
 buildKeyboard();
-reset(true);
+resetCampaign(true);
