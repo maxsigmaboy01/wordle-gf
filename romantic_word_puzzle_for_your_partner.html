@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Daily Puzzle — A Little Surprise</title>
+<script>
+(() => {
+  const root = document.documentElement;
+  const systemTheme = matchMedia('(prefers-color-scheme: dark)');
+  const storageKey = 'daily-puzzle-theme';
+  let preference;
+  try { preference = localStorage.getItem(storageKey); } catch {}
+  if (preference !== 'dark' && preference !== 'light') preference = null;
+
+  function applyTheme() {
+    const theme = preference || (systemTheme.matches ? 'dark' : 'light');
+    root.dataset.theme = theme;
+    document.getElementById('themeBtn')?.setAttribute('aria-pressed', String(theme === 'dark'));
+  }
+
+  applyTheme();
+  systemTheme.addEventListener('change', applyTheme);
+  document.addEventListener('DOMContentLoaded', () => {
+    const button = document.getElementById('themeBtn');
+    applyTheme();
+    button.addEventListener('click', () => {
+      preference = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem(storageKey, preference); } catch {}
+      applyTheme();
+    });
+  });
+})();
+</script>
+<style>
+:root {
+  color-scheme: light;
+  --ground: #f2f5ef;
+  --ink: #26382b;
+  --muted: #526458;
+  --line: #d7e0d5;
+  --surface: #fff;
+  --input: #fcfdfb;
+  --control-line: #cbd8cb;
+  --focus: #366c44;
+  --key-bg: #e8ede7;
+  --special-key: #d9e5d8;
+  --reveal-bg: #e7efe3;
+  --button-hover: #36553c;
+  --overlay: #14201666;
+  --gutter: clamp(12px, 5vw, 24px);
+  --tile-gap: 6px;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #141815;
+  --ink: #edf3eb;
+  --muted: #b0beb0;
+  --line: #39463c;
+  --surface: #1d241f;
+  --input: #171d19;
+  --control-line: #536556;
+  --focus: #a8ccaa;
+  --key-bg: #303b32;
+  --special-key: #3b4a3e;
+  --reveal-bg: #27372c;
+  --button-hover: #cbdfca;
+  --overlay: #080c09a6;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+button, input { font: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.shell { max-width: 1040px; margin-inline: auto; padding: 30px var(--gutter); }
+.layout { display: grid; grid-template-columns: minmax(0, 460px) minmax(0, 384px); gap: 24px; align-items: start; }
+.shell[data-mode="play"] {
+  max-width: 456px;
+  padding-block: clamp(12px, 3vh, 28px);
+}
+.shell[data-mode="play"] .layout { display: block; }
+.shell[data-mode="play"] .phone {
+  --board-width: clamp(184px, calc(83svh - 272px), 294px);
+  --tile-gap: 5px;
+  padding-inline: clamp(12px, 4vw, 20px);
+}
+.shell[data-mode="play"] .app-head { min-height: 54px; }
+.shell[data-mode="play"] .instructions { margin-block: 12px; }
+.shell[data-mode="play"] .meter { margin-bottom: 8px; }
+.shell[data-mode="play"] .board .guess-row { width: min(100%, var(--board-width, 294px)); }
+.shell[data-mode="play"] .status { margin-block: 5px; }
+.shell[data-mode="play"] .key { height: clamp(36px, 6.4svh, 44px); }
+.phone, .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+.phone { position: relative; padding: 0 var(--gutter) 16px; }
+.app-head {
+  display: flex;
+  min-height: 62px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 10px; font-size: 1.12rem; font-weight: 800; }
+.brand-mark { display: grid; grid-template-columns: repeat(2, 9px); gap: 3px; }
+.brand-mark span { height: 9px; border-radius: 2px; background: #a8c49e; }
+.brand-mark span:nth-child(2) { background: #d6b356; }
+.brand-mark span:nth-child(3) { background: #4c754e; }
+.head-actions { display: flex; gap: 4px; }
+.icon-btn { width: 40px; height: 40px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 1.2rem; }
+.icon-btn:hover, .icon-btn[aria-pressed="true"] { background: var(--key-bg); }
+.theme-btn { font-size: 1.25rem; line-height: 1; }
+.instructions { margin: 16px 0 14px; }
+.instructions h2 { margin: 0 0 4px; font-size: 1rem; }
+.instructions p { margin: 0; font-size: .88rem; color: var(--muted); }
+.meter { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 10px; color: var(--muted); font-size: .88rem; }
+.meter span:last-child { font-variant-numeric: tabular-nums; }
+.board { display: grid; gap: var(--tile-gap); direction: ltr; }
+.guess-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--tile-gap); width: min(100%, 324px); }
+.tile {
+  aspect-ratio: 1;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: clamp(1.15rem, 6vw, 1.65rem);
+  font-weight: 800;
+  line-height: 1;
+  user-select: none;
+}
+.tile.filled { border-color: #819b85; }
+.tile.gray, .key.gray { background: #5f6b63; border-color: #5f6b63; color: #fff; }
+.tile.yellow, .key.yellow, .board .guess-row:nth-child(2) .word, .board .guess-row:nth-child(5) .word { background: #e4cc82; border-color: #e4cc82; color: #352b10; }
+.tile.green, .key.green, .tile.word { background: #47734b; border-color: #47734b; color: #fff; }
+.tile.ghost { visibility: hidden; }
+.tile.flip { animation: flip .47s ease-in-out both; }
+.tile.pop { animation: pop .16s ease-out; }
+@keyframes flip { 50% { transform: rotateX(90deg); } }
+@keyframes pop { from { transform: scale(.9); } }
+.status { min-height: 1.4em; margin: 8px 0; font-size: .88rem; color: var(--muted); }
+.keyboard { max-width: 410px; display: grid; gap: 5px; }
+.keyrow { display: flex; gap: 4px; }
+.key {
+  height: 44px;
+  min-width: 0;
+  flex: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: var(--key-bg);
+  color: var(--ink);
+  font-size: .9rem;
+  font-weight: 750;
+  touch-action: manipulation;
+}
+.key:hover { box-shadow: inset 0 0 0 1px var(--control-line); }
+.key:active { transform: translateY(1px); }
+.key.special { flex: 1.65; font-size: .7rem; background: var(--special-key); }
+[hidden] { display: none !important; }
+.reveal-card {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 8px;
+  background: var(--reveal-bg);
+  animation: reveal-in .23s ease-out both;
+}
+@keyframes reveal-in { from { opacity: 0; transform: translateY(5px); } }
+.reveal-title { font-size: 1.12rem; font-weight: 780; }
+.reveal-desc { margin: 6px 0 0; line-height: 1.55; overflow-wrap: anywhere; }
+.final-guess { margin-top: 12px; }
+.final-guess p { margin: 0 0 5px; font-size: .88rem; color: var(--muted); }
+.final-guess .guess-row { width: min(100%, 180px); }
+.final-guess .tile { font-size: 1rem; }
+.panel { padding: 20px; }
+.panel h2 { margin: 0; font-size: 1.16rem; }
+.panel p { margin: 6px 0 12px; color: var(--muted); font-size: .88rem; line-height: 1.55; }
+.buttonrow, .presetrow { display: flex; flex-wrap: wrap; gap: 8px; }
+.buttonrow { margin-top: 14px; }
+.btn, .preset {
+  border: 1px solid var(--control-line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 650;
+  font-size: .88rem;
+  padding: 8px 12px;
+  min-height: 40px;
+}
+.btn:hover, .preset:hover { background: var(--ground); }
+.btn.primary { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+.btn.primary:hover { background: var(--button-hover); }
+.editor-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-block: 12px; }
+.field { display: grid; gap: 4px; }
+.field label { color: var(--muted); font-size: .88rem; font-weight: 650; }
+.field input { width: 100%; padding: 8px; border: 1px solid var(--control-line); border-radius: 7px; background: var(--input); color: var(--ink); }
+.field input.word-input { font-weight: 700; text-transform: uppercase; }
+.setting-group { border-top: 1px solid var(--line); margin-top: 18px; padding-top: 16px; }
+.help { display: none; position: absolute; inset: 0; background: var(--overlay); z-index: 2; align-items: center; justify-content: center; padding: 16px; border-radius: inherit; }
+.help.show { display: flex; }
+.helpbox { background: var(--surface); border-radius: 10px; padding: 18px; max-width: 330px; width: 100%; }
+.helpbox h3 { margin: 0; }
+.helpbox p { color: var(--muted); line-height: 1.55; }
+@media (max-width: 740px) { .layout { grid-template-columns: minmax(0, 460px); } }
+@media (max-width: 390px) {
+  .shell[data-mode="play"] { padding-inline: 10px; }
+  .head-actions { gap: 2px; }
+  .icon-btn { width: 36px; }
+  .keyrow { gap: 3px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0ms !important; } }
+</style></head><body>
+
+<main id="love-puzzle" class="shell" data-mode="edit">
+  <div class="layout">
+    <section class="phone" id="puzzlePhone" aria-label="Daily Puzzle game">
+      <header class="app-head">
+        <div class="brand"><div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></div>Daily Puzzle</div>
+        <div class="head-actions">
+          <button type="button" class="icon-btn theme-btn" id="themeBtn" aria-label="Dark mode" aria-pressed="false" title="Dark mode">◐</button>
+          <button class="icon-btn" id="statsBtn" aria-label="Progress" title="Progress">▥</button>
+          <button class="icon-btn" id="helpBtn" aria-label="How to play" title="How to play">ⓘ</button>
+        </div>
+      </header>
+      <div class="instructions">
+        <h2 id="instructionText">Find the hidden five-letter word.</h2>
+        <p id="keyboardHint">Type A–Z, press Enter to guess, or use the keys below.</p>
+      </div>
+      <div class="meter"><span id="turnBadge"></span><span id="turnCounter"></span></div>
+      <div class="board" id="board" role="group" aria-label="Word guessing game board" tabindex="0"></div>
+      <p class="status" id="status" role="status"></p>
+      <div class="keyboard" id="keyboard" role="group" aria-label="On-screen keyboard"></div>
+      <div class="reveal-card" id="revealCard" aria-live="polite" hidden>
+        <div class="reveal-title">You got baited, respectfully.</div>
+        <p class="reveal-desc" id="revealDesc"></p>
+        <div class="final-guess" id="finalGuess" hidden>
+          <p id="finalGuessLabel">Last guess</p>
+          <div id="finalGuessRow" role="group" aria-labelledby="finalGuessLabel"></div>
+        </div>
+      </div>
+      <div class="help" id="help">
+        <div class="helpbox" role="dialog" aria-labelledby="helpHeading">
+          <h3 id="helpHeading"></h3><p id="helpText"></p>
+          <button type="button" class="btn primary" id="helpClose">Got it</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel" id="editor" lang="th">
+      <h2>ตั้งค่าเกม</h2>
+      <form id="answerForm">
+        <div class="field" style="margin-top:12px">
+          <label for="answerInput">คำตอบของเกม</label>
+          <input class="word-input" id="answerInput" type="text" maxlength="5" pattern="[A-Za-z]{5}" autocomplete="off" spellcheck="false" aria-describedby="answerHint" placeholder="HEART">
+        </div>
+        <p id="answerHint">ใช้ A–Z จำนวน 5 ตัวแล้วกดใช้คำตอบเพื่อเริ่มเกมใหม่ ทายถูกแล้วจะเปิดข้อความทันที เว้นว่างเพื่อใช้คำใบ้แบบเดิมและเปิดข้อความเมื่อครบ 6 ครั้ง</p>
+        <button type="submit" class="btn">ใช้คำตอบแล้วเริ่มใหม่</button>
+        <p id="answerStatus" role="status" hidden></p>
+      </form>
+      <div class="setting-group">
+        <h2>ข้อความเซอร์ไพรส์</h2>
+        <p>ใส่ได้ 6 บรรทัด บรรทัดละไม่เกิน 5 ตัว ใช้ A–Z, ♡ หรือ ♥</p>
+        <div class="editor-grid" id="editorGrid"></div>
+        <div class="presetrow">
+          <button type="button" class="preset" data-preset="safe">YOU ARE MY SAFE PLACE</button>
+          <button type="button" class="preset" data-preset="love">I LOVE YOU SO MUCH</button>
+          <button type="button" class="preset" data-preset="happy">YOU MAKE ME SO HAPPY</button>
+        </div>
+        <div class="field" style="margin-top:14px">
+          <label for="endingInput">ข้อความใต้กระดาน</label>
+          <input id="endingInput" type="text" maxlength="130">
+        </div>
+        <div class="buttonrow">
+          <button type="button" class="btn" id="previewBtn">ดูตัวอย่างเฉลย</button>
+          <button type="button" class="btn" id="resetBtn">เริ่มเกมใหม่</button>
+          <button type="button" class="btn primary" id="downloadCustomBtn">ดาวน์โหลดไฟล์เกมสำหรับส่ง</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+</main>
+<script>
+(function(){'use strict';
+const root=document.getElementById('love-puzzle');if(!root)return;
+const $=id=>root.querySelector('#'+id);
+const board = $('board'), keyboard = $('keyboard');
+const rows=6,len=5;
+const words=[
+'ABOUT','ABOVE','ABUSE','ACTOR','ACUTE','ADAPT','ADORE','ADULT','AFTER','AGAIN','AGENT','AGILE','AGREE','AHEAD','ALBUM','ALERT','ALIEN','ALIVE','ALLOW','ALONE','ALTER','AMBER','AMONG','ANGEL','ANGER','ANGLE','APPLE','APPLY','ARENA','ARGUE','ARISE','ARMOR','ARROW','ASIDE','ASSET','AUDIO','AVOID','AWAKE','AWARD','AWARE','BADGE','BAKER','BASIC','BEACH','BEARD','BEGAN','BEGIN','BEING','BELOW','BENCH','BERRY','BIRTH','BLACK','BLADE','BLAME','BLEND','BLIND','BLOCK','BLOOM','BOARD','BOOST','BOUND','BRAIN','BRAVE','BREAD','BREAK','BRICK','BRIDE','BRIEF','BRING','BROAD','BROWN','BRUSH','BUILD','BURST','BUYER','CABLE','CANDY','CARRY','CATCH','CAUSE','CHAIN','CHAIR','CHARM','CHASE','CHEAP','CHECK','CHEER','CHEST','CHIEF','CHILD','CHOIR','CHORD','CHUNK','CIVIC','CIVIL','CLAIM','CLASS','CLEAN','CLEAR','CLERK','CLICK','CLOCK','CLOSE','CLOUD','COACH','COAST','COLOR','COMET','CORAL','COUNT','COURT','COVER','CRANE','CRASH','CRAZY','CREAM','CREEK','CRIME','CROSS','CROWD','CROWN','CRUSH','CURVE','CYCLE','DAILY','DANCE','DATED','DEALT','DEBUT','DECOR','DELAY','DEPTH','DEVIL','DIARY','DIGIT','DINER','DOUBT','DOZEN','DRAFT','DRAMA','DREAM','DRESS','DRIFT','DRILL','DRINK','DRIVE','DROVE','EARLY','EARTH','EIGHT','ELBOW','ELDER','ELECT','ELITE','EMPTY','ENJOY','ENTER','ENTRY','EQUAL','ERROR','ESSAY','EVENT','EVERY','EXACT','EXIST','EXTRA','FAINT','FAIRY','FAITH','FALSE','FANCY','FAULT','FAVOR','FEAST','FENCE','FERRY','FIBER','FIELD','FIERY','FIFTH','FIGHT','FINAL','FIRST','FLAME','FLASH','FLEET','FLESH','FLOAT','FLOOD','FLOOR','FLOUR','FLUID','FLUTE','FOCUS','FORCE','FORGE','FORTH','FRAME','FRESH','FRONT','FROST','FRUIT','FUNNY','GAMES','GIANT','GIVEN','GLASS','GLOBE','GLORY','GLOVE','GRACE','GRADE','GRAIN','GRAND','GRANT','GRAPE','GRAPH','GRASS','GREAT','GREEN','GREET','GRIEF','GRILL','GROUP','GROWN','GUARD','GUESS','GUEST','GUIDE','GUILT','HABIT','HAPPY','HARSH','HEART','HEAVY','HEDGE','HELLO','HENCE','HONEY','HONOR','HORSE','HOTEL','HOUSE','HUMAN','HUMOR','IDEAL','IMAGE','IMPLY','INDEX','INNER','INPUT','ISSUE','IVORY','JEWEL','JOINT','JOKER','JUDGE','JUICE','KNIFE','KNOCK','KNOWN','LABEL','LARGE','LASER','LATER','LAUGH','LAYER','LEARN','LEAST','LEAVE','LEGAL','LEMON','LEVEL','LIGHT','LIMIT','LINEN','LIVER','LOCAL','LOGIC','LOOSE','LOVER','LOWER','LOYAL','LUCKY','LUNCH','MAGIC','MAJOR','MAKER','MANGO','MAPLE','MARCH','MATCH','MAYBE','MEANT','MEDIA','MELON','MERIT','METAL','METER','MIGHT','MINOR','MINUS','MIRTH','MODEL','MONEY','MONTH','MORAL','MOTOR','MOUNT','MOUSE','MOUTH','MOVIE','MUSIC','NAIVE','NEEDY','NEVER','NIGHT','NOBLE','NOISE','NORTH','NOVEL','NURSE','OASIS','OCEAN','OFFER','OFTEN','OLIVE','ONION','OPERA','ORBIT','ORDER','ORGAN','OTHER','OUTER','OWNER','PAINT','PANEL','PANIC','PAPER','PARTY','PASTA','PATCH','PAUSE','PEACE','PEACH','PEARL','PEDAL','PENNY','PHASE','PHONE','PHOTO','PIANO','PIECE','PILOT','PITCH','PIZZA','PLACE','PLAIN','PLANE','PLANT','PLATE','PLAZA','PLEAD','POINT','POISE','POLAR','POUND','POWER','PRESS','PRICE','PRIDE','PRIME','PRINT','PRIZE','PROOF','PROUD','PULSE','PUNCH','PURSE','QUEEN','QUERY','QUEST','QUICK','QUIET','QUILT','QUITE','RADAR','RADIO','RAISE','RALLY','RANCH','RANGE','RAPID','RATIO','REACH','REACT','READY','REALM','REBEL','REFER','RELAX','REPLY','RHYME','RIDER','RIDGE','RIGHT','RINSE','RIVER','ROAST','ROBIN','ROCKY','ROMAN','ROUGH','ROUND','ROUTE','ROYAL','RUGBY','RULER','RURAL','SAFER','SALAD','SALES','SALON','SAUCE','SCALE','SCENE','SCENT','SCOPE','SCORE','SCOUT','SCREW','SEIZE','SENSE','SERVE','SETUP','SEVEN','SHADE','SHAKE','SHALL','SHAPE','SHARE','SHARP','SHEEP','SHEET','SHELF','SHELL','SHIFT','SHINE','SHIRT','SHOCK','SHOOT','SHORE','SHORT','SHOUT','SIGHT','SINCE','SKILL','SKIRT','SLEEP','SLICE','SLIDE','SMALL','SMART','SMILE','SMOKE','SNAKE','SOLAR','SOLID','SOLVE','SORRY','SOUND','SOUTH','SPACE','SPARE','SPARK','SPEAK','SPEED','SPELL','SPEND','SPICE','SPILL','SPINE','SPLIT','SPOKE','SPORT','SPRAY','SQUAD','STACK','STAFF','STAGE','STAIR','STAMP','STAND','STARE','START','STATE','STEAK','STEAM','STEEL','STEEP','STICK','STILL','STOCK','STONE','STORE','STORM','STORY','STRAP','STRAW','STRIP','STUCK','STUDY','STYLE','SUGAR','SUITE','SUNNY','SUPER','SWEET','SWIFT','SWING','TABLE','TASTE','TEACH','TEARS','TEMPO','THANK','THEME','THERE','THICK','THING','THINK','THIRD','THORN','THOSE','THREE','THROW','THUMB','TIGER','TIMER','TIRED','TITLE','TOAST','TODAY','TOKEN','TOPIC','TORCH','TOTAL','TOUCH','TOUGH','TOWER','TRACE','TRACK','TRADE','TRAIN','TREAT','TREND','TRIAL','TRIBE','TRICK','TRIED','TRULY','TRUST','TRUTH','TULIP','TUTOR','TWICE','TWIST','ULTRA','UNCLE','UNDER','UNION','UNITE','UNITY','UPPER','URBAN','USAGE','USUAL','VALID','VALUE','VAPOR','VAULT','VIDEO','VILLA','VIRAL','VISIT','VITAL','VIVID','VOICE','VOTER','WAGON','WAIST','WASTE','WATCH','WATER','WAVES','WEARY','WEAVE','WEDGE','WEIGH','WHALE','WHEAT','WHEEL','WHERE','WHICH','WHILE','WHITE','WHOLE','WHOSE','WIDEN','WIDER','WITCH','WOMAN','WOMEN','WORLD','WORRY','WORSE','WORTH','WOULD','WOUND','WRITE','WRONG','YACHT','YEARN','YIELD','YOUNG','YOUTH','ZEBRA','ZONAL'];
+const presets={safe:['YOU','ARE','MY','SAFE','PLACE','♡'],love:['I','LOVE','YOU','SO','MUCH','♡'],happy:['YOU','MAKE','ME','SO','HAPPY','♡']};
+const settings = JSON.parse(root.dataset.puzzleConfig || '{}');
+const defaultEnding = "I just wanted to say: I love you. ♡";
+let message = settings.message || presets.safe.slice();
+let ending = settings.ending ?? defaultEnding;
+let answer = settings.answer || '';
+let guesses, typed, currentCandidates, colors, isRevealed, isBusy;
+let revealTimers = [];
+let dialogTrigger;
+const ranks = ['gray', 'yellow', 'green'];
+
+function el(tag, className, text) {
+  const element = document.createElement(tag);
+  if (className) element.className = className;
+  if (text !== undefined) element.textContent = text;
+  return element;
+}
+
+function feedback(guess, target) {
+  const result = Array(len).fill(0);
+  const remaining = {};
+  for (let index = 0; index < len; index++) {
+    const letter = target[index];
+    if (guess[index] === letter) result[index] = 2;
+    else remaining[letter] = (remaining[letter] || 0) + 1;
+  }
+  for (let index = 0; index < len; index++) {
+    const letter = guess[index];
+    if (!result[index] && remaining[letter]) {
+      result[index] = 1;
+      remaining[letter]--;
+    }
+  }
+  return result;
+}
+
+function chooseFeedback(guess) {
+  const partitions = new Map();
+  for (const word of currentCandidates) {
+    const pattern = feedback(guess, word).join('');
+    if (pattern === '22222') continue;
+    if (!partitions.has(pattern)) partitions.set(pattern, []);
+    partitions.get(pattern).push(word);
+  }
+  if (!partitions.size) {
+    currentCandidates = words.filter(word => word !== guess);
+    return chooseFeedback(guess);
+  }
+  let chosen;
+  let best = -1;
+  for (const [pattern, candidates] of partitions) {
+    const colored = [...pattern].filter(rank => rank !== '0').length;
+    const score = candidates.length * (1 + Math.min(2, colored) * .03);
+    if (score > best) {
+      best = score;
+      chosen = pattern;
+    }
+  }
+  currentCandidates = partitions.get(chosen);
+  return [...chosen].map(Number);
+}
+
+function makeRow(letters, pattern, revealIndex) {
+  const row = el('div', 'guess-row');
+  for (let col = 0; col < len; col++) {
+    const letter = letters[col] || '';
+    const tile = el('div', 'tile', letter);
+    if (revealIndex !== undefined) {
+      tile.classList.add(letter ? 'word' : 'ghost');
+      if (letter) {
+        tile.classList.add('flip');
+        tile.style.animationDelay = (revealIndex * 165 + col * 40) + 'ms';
+      }
+    } else if (pattern) {
+      tile.classList.add(ranks[pattern[col]]);
+      tile.setAttribute('aria-label', letter + ', ' + ['absent', 'wrong position', 'correct position'][pattern[col]]);
+    } else if (letter) {
+      tile.classList.add('filled');
+    }
+    row.appendChild(tile);
+  }
+  return row;
+}
+
+function buildKeyboard() {
+  for (const line of ['QWERTYUIOP', 'ASDFGHJKL', '↵ZXCVBNM⌫']) {
+    const row = el('div', 'keyrow');
+    for (const key of line) {
+      const button = el('button', 'key', key === '↵' ? 'ENTER' : key);
+      button.type = 'button';
+      button.dataset.key = key;
+      button.setAttribute('aria-label', key === '↵' ? 'Enter' : key === '⌫' ? 'Backspace' : key);
+      if (key === '↵' || key === '⌫') button.classList.add('special');
+      button.addEventListener('click', event => {
+        if (event.detail > 0) board.focus({ preventScroll: true });
+        inputKey(key);
+      });
+      row.appendChild(button);
+    }
+    keyboard.appendChild(row);
+  }
+}
+
+function updateUI() {
+  board.replaceChildren();
+  for (let row = 0; row < rows; row++) {
+    const letters = guesses[row] ?? (row === guesses.length ? typed : '');
+    board.appendChild(makeRow(letters, colors[row]));
+  }
+
+  const keyColors = {};
+  guesses.forEach((guess, row) => {
+    [...guess].forEach((letter, col) => {
+      keyColors[letter] = Math.max(colors[row][col], keyColors[letter] ?? -1);
+    });
+  });
+  for (const button of keyboard.querySelectorAll('[data-key]')) {
+    button.classList.remove(...ranks);
+    const rank = keyColors[button.dataset.key];
+    if (rank !== undefined) button.classList.add(ranks[rank]);
+  }
+  const remaining = rows - guesses.length;
+  $('turnCounter').textContent = guesses.length + ' / ' + rows;
+  $('turnBadge').textContent = remaining === 1 ? '1 try left' : remaining + ' tries left';
+}
+
+function inputKey(key) {
+  if (isRevealed || isBusy) return;
+  if (key === '↵' || key === 'ENTER') {
+    if (typed.length !== len) {
+      $('status').textContent = 'Enter a 5-letter word.';
+      return;
+    }
+    const solved = answer === typed;
+    colors.push(answer ? feedback(typed, answer) : chooseFeedback(typed));
+    guesses.push(typed);
+    typed = '';
+    updateUI();
+    if (solved || guesses.length === rows) {
+      isBusy = true;
+      $('status').textContent = solved ? 'You got it!' : 'No tries left.';
+      revealTimers.push(setTimeout(reveal, 1000));
+    }
+    return;
+  }
+  if (key === '⌫' || key === 'BACKSPACE') {
+    typed = typed.slice(0, -1);
+  } else if (/^[A-Z]$/.test(key) && typed.length < len) {
+    typed += key;
+  } else {
+    return;
+  }
+  $('status').textContent = '';
+  updateUI();
+  if (/^[A-Z]$/.test(key)) {
+    board.children[guesses.length]?.children[typed.length - 1]?.classList.add('pop');
+  }
+}
+
+function clearRevealTimers() {
+  revealTimers.forEach(clearTimeout);
+  revealTimers = [];
+}
+
+function reveal() {
+  clearRevealTimers();
+  isRevealed = true;
+  isBusy = false;
+  board.replaceChildren(...message.map((line, index) => makeRow(line, null, index)));
+  keyboard.hidden = true;
+  $('keyboardHint').hidden = true;
+  $('status').hidden = true;
+  $('revealDesc').textContent = ending;
+  const lastGuess = guesses.at(-1);
+  const showFeedback = answer && (lastGuess === answer || guesses.length === rows);
+  $('finalGuess').hidden = !showFeedback;
+  $('finalGuessRow').replaceChildren();
+  if (showFeedback) {
+    $('finalGuessRow').appendChild(makeRow(lastGuess, colors.at(-1)));
+  }
+  $('instructionText').textContent = 'The answer was here all along.';
+  $('turnBadge').textContent = 'A message for you';
+  $('turnCounter').textContent = '♡';
+  $('status').textContent = '';
+  $('revealCard').hidden = true;
+  revealTimers.push(setTimeout(() => { $('revealCard').hidden = false; }, 1180));
+}
+
+function reset() {
+  clearRevealTimers();
+  guesses = [];
+  typed = '';
+  colors = [];
+  currentCandidates = words.slice();
+  isBusy = false;
+  isRevealed = false;
+  keyboard.hidden = false;
+  $('keyboardHint').hidden = false;
+  $('status').hidden = false;
+  $('revealCard').hidden = true;
+  $('instructionText').textContent = 'Find the hidden five-letter word.';
+  $('status').textContent = '';
+  updateUI();
+}
+
+function renderEditor() {
+  const grid = $('editorGrid');
+  grid.replaceChildren();
+  for (let index = 0; index < rows; index++) {
+    const field = el('div', 'field');
+    const label = el('label', '', 'บรรทัด ' + (index + 1));
+    const input = el('input', 'word-input');
+    input.id = 'msgline' + index;
+    label.htmlFor = input.id;
+    input.value = message[index];
+    input.maxLength = len;
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    input.addEventListener('input', () => {
+      const line = input.value.toUpperCase().replace(/[^A-Z♡♥]/g, '').slice(0, len);
+      if (input.value !== line) input.value = line;
+      message[index] = line;
+      if (isRevealed) reveal();
+    });
+    field.append(label, input);
+    grid.appendChild(field);
+  }
+}
+
+function downloadGame() {
+  const answerInput = $('answerInput');
+  if (!answerInput.reportValidity()) return;
+
+  const copy = document.documentElement.cloneNode(true);
+  delete copy.dataset.theme;
+  const game = copy.querySelector('#love-puzzle');
+  game.dataset.mode = 'play';
+  game.dataset.puzzleConfig = JSON.stringify({
+    message,
+    ending,
+    answer: answerInput.value.toUpperCase()
+  });
+  game.querySelector('#editor').remove();
+  for (const id of ['board', 'keyboard', 'revealDesc', 'finalGuessRow', 'status', 'helpHeading', 'helpText']) {
+    game.querySelector('#' + id).replaceChildren();
+  }
+  game.querySelector('#help').classList.remove('show');
+  game.querySelector('#revealCard').hidden = true;
+  const html = '<!doctype html>\n' + copy.outerHTML;
+  const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+  const link = el('a');
+  link.href = url;
+  link.download = 'a-little-word-puzzle-for-you.html';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+}
+
+function openHelp(trigger, heading, description) {
+  dialogTrigger = trigger;
+  $('helpHeading').textContent = heading;
+  $('helpText').textContent = description;
+  $('help').classList.add('show');
+  $('helpClose').focus();
+}
+
+function closeHelp() {
+  $('help').classList.remove('show');
+  dialogTrigger?.focus();
+}
+
+$('helpBtn').addEventListener('click', event => openHelp(event.currentTarget, 'How to play',
+  'Guess a five-letter word in up to six tries. Type A–Z, use Backspace to delete, and press Enter to submit. Green marks the correct spot, yellow marks a different spot, and gray means the letter is absent.'));
+$('statsBtn').addEventListener('click', event => openHelp(event.currentTarget, 'Your progress',
+  'Attempts used: ' + guesses.length + ' of ' + rows + '.'));
+$('helpClose').addEventListener('click', closeHelp);
+$('help').addEventListener('click', event => {
+  if (event.target === $('help')) closeHelp();
+});
+
+document.addEventListener('keydown', event => {
+  if ($('help').classList.contains('show')) {
+    if (event.key === 'Escape') closeHelp();
+    return;
+  }
+  const target = event.target;
+  if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || event.isComposing ||
+      target.isContentEditable || target.closest?.('input, textarea, select')) return;
+  // A Thai layout changes the key's text, but its physical letter position stays the same.
+  const thaiLetterKey = /[\u0E00-\u0E7F]/.test(event.key) && /^Key[A-Z]$/.test(event.code);
+  const key = thaiLetterKey ? event.code.slice(3) : event.key.toUpperCase();
+  if (!/^[A-Z]$/.test(key) && key !== 'ENTER' && key !== 'BACKSPACE') return;
+  if (key === 'ENTER' && target.closest?.('button, a[href]')) return;
+  if (isRevealed || isBusy) return;
+  event.preventDefault();
+  if (key === 'ENTER' && event.repeat) return;
+  if (/^[A-Z]$/.test(key) && target.closest?.('button, a[href]')) {
+    board.focus({ preventScroll: true });
+  }
+  inputKey(key);
+});
+
+if ($('editor')) {
+  const answerInput = $('answerInput');
+  const answerStatus = $('answerStatus');
+  answerInput.value = answer;
+  $('answerForm').addEventListener('submit', event => {
+    event.preventDefault();
+    answer = answerInput.value.toUpperCase();
+    answerStatus.textContent = answer ? 'ใช้คำตอบที่ตั้งไว้แล้ว' : 'ใช้คำใบ้แบบเดิมแล้ว';
+    answerStatus.hidden = false;
+    reset();
+    board.focus();
+  });
+  answerInput.addEventListener('input', () => { answerStatus.hidden = true; });
+
+  $('endingInput').value = ending;
+  $('endingInput').addEventListener('input', event => {
+    ending = event.target.value;
+    if (isRevealed) $('revealDesc').textContent = ending;
+  });
+  for (const button of root.querySelectorAll('[data-preset]')) {
+    button.addEventListener('click', () => {
+      const key = button.dataset.preset;
+      message = presets[key].slice();
+      ending = {
+        safe: defaultEnding,
+        love: "I couldn't find a better way to say it. I love you, always. ♡",
+        happy: "Every day feels brighter with you. I love you. ♡"
+      }[key];
+      $('endingInput').value = ending;
+      renderEditor();
+      if (isRevealed) reveal();
+    });
+  }
+  $('previewBtn').addEventListener('click', () => {
+    reveal();
+    board.focus();
+  });
+  $('resetBtn').addEventListener('click', () => { reset(); board.focus(); });
+  $('downloadCustomBtn').addEventListener('click', downloadGame);
+  renderEditor();
+}
+
+buildKeyboard();
+reset();
+})();
+</script></body></html>
