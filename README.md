@@ -16,6 +16,8 @@ Open `dist/index.html` in a browser. For the web manifest and Home Screen icon, 
 2. Edit the six reveal lines and caption for level 3. Use the preview to check the surprise.
 3. Download the standalone player HTML. It starts on level 1 and saves its current level and guesses in the browser. A normal level can be retried after a loss or completed to continue.
 
+Choose a seasonal theme in **Settings**. The exported player starts with that theme and can switch themes independently. GIFs and their still frames are embedded for offline use. Summer Picnic uses the supplied Classic dinosaur with its own palette.
+
 The default answers are `PLANT`, `CLOUD`, `BRAVE`, and `SPARK` in that order. Edit [levels.json](backend/data/levels.json) to change the defaults, keeping the third slot `null` for the surprise.
 
 ## Project layout

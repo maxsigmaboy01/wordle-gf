@@ -2,6 +2,7 @@ import { ATTEMPTS as rows, WORD_LENGTH as len, createPuzzle } from '../backend/g
 import { LEVEL_COUNT, SURPRISE_LEVEL, campaignAnswers, nextLevel, resumeLevel } from '../backend/campaign.js';
 import words from '../backend/data/words.txt';
 import answers from '../backend/data/answers.txt';
+import { setupSeasons } from './seasons.js';
 import { readStorage, roundIdentifier, saveStorage } from './storage.js';
 import { el, makeRow, ranks, renderExamples, renderStats } from './views.js';
 
@@ -16,6 +17,13 @@ const presets = {
   happy: ['YOU', 'MAKE', 'ME', 'SO', 'HAPPY', '♡']
 };
 const settings = JSON.parse(root.dataset.puzzleConfig || '{}');
+const seasons = setupSeasons({
+  select: $('seasonSelect'),
+  mascot: $('seasonMascot'),
+  reducedMotion,
+  settings,
+  isEditor: Boolean($('editor'))
+});
 const defaultEnding = "I just wanted to say: I love you. ♡";
 let message = settings.message || presets.safe.slice();
 let ending = settings.ending ?? defaultEnding;
@@ -166,6 +174,7 @@ function prepareResult(preview) {
   clearTimers();
   const { guesses, colors } = round;
   $('revealCard').hidden = true;
+  seasons.stopMascot();
   $('resultActions').hidden = true;
   $('resultNote').hidden = false;
   $('complaint').textContent = '';
@@ -224,6 +233,7 @@ function reveal(preview = false) {
 
   function finishReveal() {
     $('resultTitle').textContent = 'You got baited, respectfully.';
+    seasons.showMascot();
     $('revealCard').hidden = false;
     $('resultBoard').setAttribute('aria-label', 'Revealed message');
     $('resultNote').hidden = true;
@@ -307,6 +317,7 @@ resultDialog.addEventListener('cancel', event => {
   if (isBusy) event.preventDefault();
 });
 resultDialog.addEventListener('close', () => {
+  if (!resultDialog.open) seasons.stopMascot();
   if (!$('viewResult').hidden) $('viewResult').focus({ preventScroll: true });
 });
 $('continueGame').addEventListener('click', () => {
@@ -415,12 +426,14 @@ function downloadGame() {
 
   const copy = document.documentElement.cloneNode(true);
   delete copy.dataset.theme;
+  delete copy.dataset.season;
   const game = copy.querySelector('#love-puzzle');
   game.dataset.mode = 'play';
   game.dataset.puzzleConfig = JSON.stringify({
     message,
     ending,
     answers,
+    season: seasons.current(),
     session: roundIdentifier()
   });
   game.querySelector('#editor').remove();
@@ -435,6 +448,8 @@ function downloadGame() {
   game.querySelector('#statsDialog').removeAttribute('open');
   game.querySelector('#shareFallback').hidden = true;
   game.querySelector('#themeBtn').hidden = true;
+  game.querySelector('#seasonField').hidden = true;
+  game.querySelector('#seasonMascot').removeAttribute('src');
   delete game.querySelector('#status').dataset.tone;
   game.querySelector('#resultDialog').removeAttribute('open');
   game.querySelector('#resultTitle').textContent = 'Game over';
@@ -460,14 +475,15 @@ const statsDialog = $('statsDialog');
 function openHelp(showTheme = false) {
   $('helpHeading').textContent = showTheme ? 'Settings' : 'How to play';
   $('helpText').textContent = showTheme
-    ? 'Choose a theme for this browser.'
+    ? 'Choose a seasonal theme and display mode.'
     : 'Each level gives you six tries to guess a five-letter word. Green marks the right spot, yellow marks a different spot, and gray means the letter is absent.';
   $('themeBtn').hidden = !showTheme;
+  $('seasonField').hidden = !showTheme;
   $('helpExamples').hidden = showTheme;
   $('helpGamepad').hidden = showTheme;
   if (!showTheme) renderExamples($('helpExamples'));
   help.showModal();
-  $(showTheme ? 'themeBtn' : 'helpClose').focus();
+  $(showTheme ? 'seasonSelect' : 'helpClose').focus();
 }
 
 $('helpBtn').addEventListener('click', () => openHelp());

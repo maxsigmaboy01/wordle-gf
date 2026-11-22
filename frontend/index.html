@@ -41,7 +41,7 @@
         <div class="board result-board" id="resultBoard" role="group" aria-label="Puzzle result"></div>
         <div class="reveal-card" id="revealCard" aria-live="polite" hidden>
           <div class="mascot-line" aria-hidden="true">
-            <img class="mascot-dinosaur" alt="" width="126" height="150" src="embed:dino_original_exact.png">
+            <img class="season-mascot" id="seasonMascot" alt="" width="512" height="512">
             <img class="mascot-chest" alt="" width="130" height="113" src="embed:chest_original_exact.png">
           </div>
           <p class="reveal-desc custom-ending" id="revealDesc"></p>
@@ -61,6 +61,10 @@
         <h2 id="helpHeading"></h2>
         <p id="helpText"></p>
         <div class="help-examples" id="helpExamples" aria-label="Example word feedback" role="group"></div>
+        <div class="season-field" id="seasonField" hidden>
+          <label for="seasonSelect">Seasonal theme</label>
+          <select id="seasonSelect"></select>
+        </div>
         <button type="button" class="btn" id="themeBtn" aria-pressed="false" hidden>Dark mode</button>
         <button type="button" class="btn primary" id="helpClose">Got it</button>
       </dialog>
@@ -83,6 +87,7 @@
       </form>
       <div class="setting-group">
         <h2>ข้อความเซอร์ไพรส์ด่าน 3</h2>
+        <p>ธีมที่เลือกใน Settings จะเป็นธีมเริ่มต้นของไฟล์ที่ส่งออก</p>
         <p>ใส่ได้ 6 บรรทัด บรรทัดละไม่เกิน 5 ตัว ใช้ A–Z, ♡ หรือ ♥</p>
         <div class="editor-grid" id="editorGrid"></div>
         <div class="presetrow">

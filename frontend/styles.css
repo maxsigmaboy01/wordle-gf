@@ -46,6 +46,42 @@
   --button-hover: #cbdfca;
   --overlay: #080c09cf;
 }
+:root[data-season="christmas"] {
+  --season-ground: #f1e4df; --season-surface: #fbf3ed; --season-accent: #9c4038; --season-footer: #e7d2cc;
+}
+:root[data-season="spring"] {
+  --season-ground: #f4e9e9; --season-surface: #fff6f2; --season-accent: #9b4760; --season-footer: #f1d8d6;
+}
+:root[data-season="halloween"] {
+  --season-ground: #eae2ed; --season-surface: #f6eef4; --season-accent: #664677; --season-footer: #e8d1c6;
+}
+:root[data-season="space"] {
+  --season-ground: #e2e8f4; --season-surface: #f0f3fc; --season-accent: #4a568b; --season-footer: #d0d8ed;
+}
+:root[data-season="summer"] {
+  --season-ground: #edf2dd; --season-surface: #faf7e6; --season-accent: #576b34; --season-footer: #e6db9f;
+}
+:root[data-season="christmas"][data-theme="dark"] {
+  --season-ground: #211818; --season-surface: #2f2121; --season-accent: #e6a29b; --season-footer: #4c2e2c;
+}
+:root[data-season="spring"][data-theme="dark"] {
+  --season-ground: #21191e; --season-surface: #30232b; --season-accent: #e8a6b7; --season-footer: #4a3440;
+}
+:root[data-season="halloween"][data-theme="dark"] {
+  --season-ground: #201a26; --season-surface: #2c2236; --season-accent: #e1b0ee; --season-footer: #49344d;
+}
+:root[data-season="space"][data-theme="dark"] {
+  --season-ground: #151927; --season-surface: #212840; --season-accent: #bec8fa; --season-footer: #343e60;
+}
+:root[data-season="summer"][data-theme="dark"] {
+  --season-ground: #1b2016; --season-surface: #272d1c; --season-accent: #d5dc91; --season-footer: #41492a;
+}
+:root[data-season]:not([data-season="classic"]) {
+  --ground: var(--season-ground);
+  --surface: var(--season-surface);
+  --accent: var(--season-accent);
+  --footer: var(--season-footer);
+}
 * { box-sizing: border-box; }
 body {
   margin: 0;
@@ -53,7 +89,7 @@ body {
   color: var(--ink);
   font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
-button, input { font: inherit; }
+button, input, select { font: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .shell { max-width: 1040px; margin-inline: auto; padding: 30px var(--gutter); }
@@ -219,7 +255,40 @@ button { cursor: pointer; }
 .reveal-card { padding-top: 3px; animation: reveal-in .23s ease-out both; }
 .mascot-line { min-height: 69px; display: flex; align-items: end; justify-content: space-between; border-bottom: 4px solid var(--footer); }
 .mascot-line img { width: auto; object-fit: contain; max-width: 44%; }
-.mascot-dinosaur { height: clamp(58px, 10svh, 74px); }
+.mascot-line .season-mascot {
+  width: clamp(92px, 29%, 112px);
+  height: auto;
+  align-self: end;
+  transform: translateY(11px);
+}
+:root[data-season]:not([data-season="classic"]) .mascot-line {
+  --ridge: var(--footer);
+  isolation: isolate;
+  position: relative;
+  overflow: hidden;
+}
+:root[data-season]:not([data-season="classic"]) .mascot-line::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: auto 0 0;
+  height: 30%;
+  background: var(--ridge);
+  clip-path: polygon(0 48%, 10% 33%, 20% 45%, 29% 25%, 38% 42%, 48% 16%, 59% 40%, 70% 28%, 81% 50%, 92% 29%, 100% 41%, 100% 100%, 0 100%);
+}
+:root[data-season="space"] .mascot-line::after,
+:root[data-season="summer"] .mascot-line::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 57%;
+  top: 18%;
+  width: 15px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #e8c557;
+}
+:root[data-season="space"] .mascot-line::after { box-shadow: -22px -5px 0 -5px #9eacee, 37px 13px 0 -4px #aebbf0; }
 .mascot-chest { height: clamp(50px, 8svh, 62px); }
 .reveal-desc { margin: 8px 0 0; line-height: 1.45; overflow-wrap: anywhere; font-weight: 650; font-size: .92rem; }
 .result-actions .btn { flex: 1 1 auto; }
@@ -256,6 +325,23 @@ button { cursor: pointer; }
 .help-dialog p { color: var(--muted); line-height: 1.5; font-size: .9rem; }
 .help-examples { width: min(100%, 220px); margin: 12px auto; display: grid; gap: 4px; --tile-gap: 4px; }
 .help-examples .tile { aspect-ratio: 1.3; font-size: 1rem; }
+.season-field {
+  display: grid;
+  gap: 5px;
+  margin: 14px auto;
+  text-align: start;
+  max-width: 250px;
+  font-size: .9rem;
+}
+.season-field select {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--control-line);
+  border-radius: 7px;
+  background: var(--input);
+  color: var(--ink);
+}
 #themeBtn[aria-pressed="true"] { background: var(--key-bg); }
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 16px 0; }
 .stat { background: var(--tile-bg); border-radius: 8px; padding: 9px 4px; }

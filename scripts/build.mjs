@@ -8,7 +8,6 @@ const output = new URL('dist/', root);
 const read = file => readFile(new URL(file, frontend), 'utf8');
 const files = [
   'daily_puzzle_icon.svg',
-  'dino_original_exact.png',
   'chest_original_exact.png',
   'gamepad_original_exact.png'
 ];
@@ -23,7 +22,7 @@ const [template, css, theme, license, app, ...images] = await Promise.all([
     entryPoints: ['frontend/app.js'],
     bundle: true,
     format: 'iife',
-    loader: { '.txt': 'text' },
+    loader: { '.txt': 'text', '.gif': 'dataurl', '.png': 'dataurl' },
     write: false
   }),
   ...files.map(file => readFile(new URL('assets/' + file, frontend)))
