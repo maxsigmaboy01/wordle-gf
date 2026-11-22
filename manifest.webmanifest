@@ -1,0 +1,12 @@
+{
+  "name": "Daily Puzzle",
+  "short_name": "Daily Puzzle",
+  "start_url": "./romantic_word_puzzle_for_your_partner.html",
+  "display": "standalone",
+  "background_color": "#f2f5ef",
+  "theme_color": "#f2f5ef",
+  "icons": [
+    {"src": "assets/daily_puzzle_icon_192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "assets/daily_puzzle_icon_512.png", "sizes": "512x512", "type": "image/png"}
+  ]
+}
