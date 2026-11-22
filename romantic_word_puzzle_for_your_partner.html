@@ -180,7 +180,6 @@ button { cursor: pointer; }
 .result-board { width: min(100%, 278px); margin: 10px auto 0; --tile-gap: 4px; }
 .result-board .tile { aspect-ratio: 1.27; font-size: clamp(1.1rem, 5vw, 1.5rem); }
 .reveal-title { margin: 0; }
-#revealSetup, #revealPunchline { white-space: pre-line; }
 .custom-ending { margin-top: 12px; font-weight: 700; }
 .result-actions .btn { flex: 1 1 auto; }
 .complaint { margin: 10px 0 0; color: var(--muted); font-size: .88rem; }
@@ -266,8 +265,6 @@ button { cursor: pointer; }
         <div class="board result-board" id="resultBoard" role="group" aria-label="Puzzle result"></div>
         <div class="reveal-card" id="revealCard" aria-live="polite" hidden>
           <h3 class="reveal-title">You got baited, respectfully.</h3>
-          <p id="revealSetup" class="reveal-desc"></p>
-          <p id="revealPunchline" class="reveal-desc"></p>
           <p class="reveal-desc custom-ending" id="revealDesc"></p>
           <div class="final-guess" id="finalGuess" hidden>
             <p id="finalGuessLabel">Last guess</p>
@@ -996,15 +993,8 @@ function reveal(preview = false) {
   isRevealed = true;
   isBusy = true;
   const solved = !preview && solvedRound();
-  const trick = !answer && !solved;
   $('resultTitle').textContent = solved ? 'Puzzle solved' : 'Game over';
   $('resultNote').textContent = solved ? 'Nice work.' : 'Better luck next time.';
-  $('revealSetup').textContent = trick
-    ? 'Six guesses. Zero chance.\nThis game was rigged from the start.'
-    : 'You came for a puzzle.\nThere was a side quest.';
-  $('revealPunchline').textContent = trick
-    ? 'The puzzle was fake.\nMy feelings, unfortunately, are real.'
-    : 'The puzzle was real.\nSo are my feelings, unfortunately.';
   $('revealDesc').textContent = ending;
   $('revealDesc').hidden = !ending;
   $('finalGuess').hidden = !answer || !gameOver || preview;
@@ -1156,7 +1146,7 @@ function downloadGame() {
   copy.querySelector('[rel="icon"]').href = game.querySelector('.brand img').getAttribute('src');
   copy.querySelector('[rel="apple-touch-icon"]')?.remove();
   copy.querySelector('[rel="manifest"]')?.remove();
-  for (const id of ['board', 'keyboard', 'resultBoard', 'revealSetup', 'revealPunchline', 'revealDesc', 'finalGuessRow',
+  for (const id of ['board', 'keyboard', 'resultBoard', 'revealDesc', 'finalGuessRow',
     'resultNote', 'complaint', 'status', 'helpHeading', 'helpText']) {
     game.querySelector('#' + id).replaceChildren();
   }
