@@ -6,4 +6,4 @@ A five-letter puzzle with six guesses and a surprise ending. The game checks Eng
 2. Set a five-letter English answer, or leave it blank for the six-guess surprise mode. Edit the six reveal lines and the caption in the settings panel.
 3. Preview the ending, then download the standalone player HTML. The player version opens offline and shows the message after the round ends.
 
-The bundled dictionary combines the game’s answer list with five-letter entries from Berkeley's public-domain `web2` word list. The web manifest references the supplied Home Screen icons when the project is served over HTTP or HTTPS.
+The offline dictionary accepts 12,425 five-letter words, combining the game’s answer list with Berkeley’s public-domain `web2` list, [ENABLE 2K](https://github.com/BartMassey/wordlists/blob/main/README-enable2k.txt), and a small supplement for current usage. The web manifest references the supplied Home Screen icons when the project is served over HTTP or HTTPS.
