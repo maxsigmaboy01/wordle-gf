@@ -13,10 +13,11 @@ const files = [
   'gamepad_original_exact.png'
 ];
 
-const [template, css, theme, app, ...images] = await Promise.all([
+const [template, css, theme, license, app, ...images] = await Promise.all([
   read('index.html'),
   read('styles.css'),
   read('theme.js'),
+  readFile(new URL('backend/data/ESDB-LICENSE.txt', root), 'utf8'),
   build({
     absWorkingDir: fileURLToPath(root),
     entryPoints: ['frontend/app.js'],
@@ -32,8 +33,9 @@ const imageSources = new Map(files.map((file, index) => [
   file,
   'data:image/' + (file.endsWith('.svg') ? 'svg+xml' : 'png') + ';base64,' + images[index].toString('base64')
 ]));
-const inlineScript = source => '<script>\n' + source.replace(/<\/script/gi, '<\\/script') + '\n</script>';
+const inlineScript = (source, attrs = '') => '<script' + attrs + '>\n' + source.replace(/<\/script/gi, '<\\/script') + '\n</script>';
 const html = template
+  .replace('<!-- wordlist-license -->', () => inlineScript(license, ' type="text/plain" id="wordlist-license"'))
   .replace('<!-- theme -->', () => inlineScript(theme))
   .replace('<!-- styles -->', () => '<style>\n' + css + '</style>')
   .replace('<!-- app -->', () => inlineScript(app.outputFiles[0].text))

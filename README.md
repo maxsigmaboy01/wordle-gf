@@ -22,7 +22,7 @@ The default answers are `PLANT`, `CLOUD`, `BRAVE`, and `SPARK` in that order. Ed
 
 - [Frontend](frontend/) holds the page, styles, browser storage, keyboard, animation, and approved sprite assets.
 - [Backend](backend/) holds the game rules, grading, round state, and the dictionaries. The engine is a JavaScript module bundled with the frontend so the player needs no running server.
-- [Accepted guesses](backend/data/words.txt) is an alphabetized, one-word-per-line English list. It includes 12,425 words from Berkeley `web2`, [ENABLE 2K](https://github.com/BartMassey/wordlists/blob/main/README-enable2k.txt), and a small modern supplement.
+- [Accepted guesses](backend/data/words.txt) is an alphabetized, one-word-per-line English list. It includes 12,592 words from Berkeley `web2`, [ENABLE 2K](https://github.com/BartMassey/wordlists/blob/main/README-enable2k.txt), a small modern supplement, and filtered entries from the American, British, Australian, and Canadian [ESDB 2026.02.25 speller dictionaries](https://github.com/en-wl/wordlist-diff/tree/rel-2026.02.25). The ESDB notice is bundled with the HTML. [License](backend/data/ESDB-LICENSE.txt)
 - [Candidate answers](backend/data/answers.txt) contains the smaller list used to choose consistent clues in surprise mode. Keep its order when editing if previously saved games must replay the same clues.
 
 Run `npm run build` after editing any source or dictionary. The generated `dist/` folder is ignored in Git. The player HTML embeds the rules, dictionary, and reveal images.

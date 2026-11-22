@@ -15,10 +15,10 @@ function guess(round, word) {
 
 test('word lists are distinct and include the expanded dictionary', () => {
   const entries = words.trim().split(/\s+/);
-  assert.ok(entries.length >= 12425);
+  assert.ok(entries.length >= 12592);
   assert.equal(new Set(entries).size, entries.length);
-  for (const word of ['SUSHI', 'EMOJI', 'VLOGS']) assert.equal(puzzle.isWord(word), true);
-  assert.equal(puzzle.isWord('QUILK'), false);
+  for (const word of ['SUSHI', 'EMOJI', 'VLOGS', 'BENTO', 'BLING', 'DOULA', 'INBOX', 'KORMA', 'PANKO', 'PHISH', 'QUBIT', 'VOXEL']) assert.equal(puzzle.isWord(word), true);
+  for (const invalid of ['QUILK', 'CLVII', 'XREFS']) assert.equal(puzzle.isWord(invalid), false);
 });
 
 test('duplicate letters count only the unmatched occurrences', () => {
