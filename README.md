@@ -16,7 +16,9 @@ Open `dist/index.html` in a browser. For the web manifest and Home Screen icon, 
 2. Edit the six reveal lines and caption for level 3. Use the preview to check the surprise.
 3. Download the standalone player HTML. It starts on level 1 and saves its current level and guesses in the browser. A normal level can be retried after a loss or completed to continue.
 
-The default answers are `PLANT`, `CLOUD`, `BRAVE`, and `SPARK` in that order. Edit [levels.json](backend/data/levels.json) to change the defaults, keeping the third slot `null` for the surprise.
+Choose a seasonal theme in **Settings**. The exported player starts with that theme and can switch themes independently. GIFs and their still frames are embedded for offline use. Summer Picnic uses the supplied Classic dinosaur with its own palette.
+
+The default answers are `APPLE`, `CLOUD`, `BRAVE`, and `SPARK` in that order. Edit `answers` in [levels.json](backend/data/levels.json) to change the defaults, keeping the third slot `null` for the surprise. `surpriseOffAnswer` (`OCEAN`) is the level 3 answer when Surprise Mode is off; it is off by default in the Mac app.
 
 ## Project layout
 
@@ -28,3 +30,15 @@ The default answers are `PLANT`, `CLOUD`, `BRAVE`, and `SPARK` in that order. Ed
 Run `npm run build` after editing any source or dictionary. The generated `dist/` folder is ignored in Git. The player HTML embeds the rules, dictionary, and reveal images.
 
 The surprise mode prefers a feedback pattern that leaves a plausible non-winning answer. In the rare case that the only compatible answer is guessed, it accepts the solve so previous clues stay coherent. Completed rounds and draft guesses are saved per puzzle in the current browser. Shared scores omit the secret message.
+
+## iPhone app
+
+Open the SwiftUI project in Xcode to build and run the offline game on an iPhone. See the [iOS setup](ios/README.md).
+
+## Web player and Mac app
+
+Build a player-only page with `npm run build:player`. Open `dist/player/index.html` on the Mac or serve only the `dist/player` directory and open that address in Safari on the iPhone. The downloaded HTML embeds the sound and theme assets.
+
+The authoring view puts **Export player HTML** in **Settings**. The game sounds and seasonal music can be adjusted there. Music starts off until enabled.
+
+For macOS, install the Rust toolchain, run `npm ci`, then run `npm run build:mac`. The Rust/Tauri app uses the Classic Dino icon and opens a macOS save dialog for player exports. The bundle is generated under `src-tauri/target/release/bundle/macos/`. A local debug bundle can be built using `npm run build:mac -- --debug`.

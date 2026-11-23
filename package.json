@@ -5,9 +5,12 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "node --test"
+    "test": "node --test",
+    "build:mac": "tauri build --bundles app",
+    "build:player": "node scripts/build.mjs --web-player dist/player/index.html"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "2.12.6",
     "esbuild": "0.28.2"
   }
 }

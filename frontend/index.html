@@ -1,11 +1,98 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Daily Puzzle</title>
-<link rel="icon" type="image/svg+xml" href="assets/daily_puzzle_icon.svg">
-<link rel="apple-touch-icon" href="assets/daily_puzzle_icon_180.png">
+<link rel="icon" type="image/png" href="embed:icons/classic_dino.png">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <!-- wordlist-license -->
 <!-- theme -->
 <!-- styles --></head><body>
+
+<svg id="menuIcons" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3.5 11 12 3.5 20.5 11M5.5 9.5V20h4.5v-5.5h4V20h4.5V9.5"/></symbol>
+  <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.4 0 2-.9 2-1.8 0-1.3-1.1-1.5-1.1-2.7 0-1 .8-1.7 1.9-1.7h2a3.9 3.9 0 0 0 3.9-3.9C20.7 6.5 16.9 3.5 12 3.5z"/><circle cx="7.8" cy="11.2" r="1"/><circle cx="10.2" cy="7.4" r="1"/><circle cx="14.6" cy="7.4" r="1"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 19V9h4v10m2 0V5h4v14m2 0v-7h4v7M2 19h20"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><path d="m10 3-1 2.5-2 .8-2.5-.8-2 3.5L4 11v2l-1.5 2 2 3.5 2.5-.8 2 .8 1 2.5h4l1-2.5 2-.8 2.5.8 2-3.5-1.5-2v-2l1.5-2-2-3.5-2.5.8-2-.8L14 3z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5zM15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 1 1 4 2c-1.2.9-1.6 1.4-1.6 2.7M12 17.5h.02"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5.5 12.5 4.2 4.2L18.5 8"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10.3A4.3 4.3 0 0 1 12 7.1a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><path d="m12 12 7.5-7.5"/></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="10" rx="1.5"/><path d="M3 7.5h18V10H3zM12 7.5V20M12 7.5C9 7.5 7.5 3.5 10 3.5S12 7.5 12 7.5zm0 0c3 0 4.5-4 2-4s-2 4-2 4z"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="m4 20 1-4.5L16.5 4a2.1 2.1 0 0 1 3 3L8 18.5zM14.5 6l3 3"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></symbol>
+  <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M7.5 14h9"/></symbol>
+  <symbol id="i-motion" viewBox="0 0 24 24"><path d="M3 8.5c3-3 5 3 8 0s5 3 8 0M3 15.5c3-3 5 3 8 0s5 3 8 0"/></symbol>
+  <symbol id="i-contrast" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 0 0 17z" fill="currentColor"/></symbol>
+  <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 17.5V6l10-2v11.5"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9zM18.5 16.5v4M16.5 18.5h4"/></symbol>
+  <symbol id="i-apps" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></symbol>
+  <symbol id="i-face" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.7 14.3c.9 1.3 2 1.9 3.3 1.9s2.4-.6 3.3-1.9M9 10h.01M15 10h.01"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.4-5.5M19.5 4v4.5H15"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="2.2"/><path d="M15.5 8.5V6.2a2 2 0 0 0-2-2H6.2a2 2 0 0 0-2 2v7.3a2 2 0 0 0 2 2h2.3"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-chev-left" viewBox="0 0 24 24"><path d="m14.5 6-6 6 6 6"/></symbol>
+  <symbol id="i-chev-right" viewBox="0 0 24 24"><path d="m9.5 6 6 6-6 6"/></symbol>
+</svg>
+<div class="menu settings" id="settingsScreen" hidden></div>
+<template id="sideTpl" data-menu-only>
+  <aside class="menu-side">
+    <div class="menu-brand"><img class="brand-icon" alt="" width="36" height="36"><span class="brand-text"><b>Daily Puzzle</b><small>A little puzzle, every day.</small></span></div>
+    <nav class="menu-nav" aria-label="Main menu">
+      <button type="button" class="menu-nav-item" data-menu="home"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg><span>Home</span></button>
+      <button type="button" class="menu-nav-item" data-menu="play"><svg class="ic" aria-hidden="true"><use href="#i-apps"/></svg><span>Play Puzzle</span></button>
+      <button type="button" class="menu-nav-item" data-menu="themes"><svg class="ic" aria-hidden="true"><use href="#i-palette"/></svg><span>Themes</span></button>
+      <button type="button" class="menu-nav-item" data-menu="stats"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg><span>My Stats</span></button>
+      <hr class="menu-sep">
+      <button type="button" class="menu-nav-item" data-menu="settings"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg><span>Settings</span></button>
+      <button type="button" class="menu-nav-item" data-menu="help"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg><span>How to Play</span></button>
+    </nav>
+    <div class="menu-side-foot">
+      <div class="side-mascot" aria-hidden="true"><img class="side-dino" alt="" width="96" height="96"></div>
+      <p class="side-status"><span class="side-ready"><i class="dot" aria-hidden="true"></i>Offline &amp; ready</span><span class="side-keys" aria-hidden="true">&#8984; 1&ndash;4</span></p>
+    </div>
+  </aside>
+</template>
+<div class="menu menu-home" id="menuScreen" hidden>
+  <main class="home">
+    <header class="home-head">
+      <h1 class="home-title"><span>DAILY</span> <span>PUZZLE</span></h1>
+      <p class="home-tag">A perfectly normal word game.</p>
+    </header>
+    <div class="home-body">
+      <nav class="home-menu" id="homeMenu" role="menu" aria-label="Main menu" tabindex="0">
+        <button type="button" role="menuitem" tabindex="-1" class="home-item" data-menu="new-game"><svg class="home-cursor" viewBox="0 0 4 7" aria-hidden="true" shape-rendering="crispEdges"><path d="M0 0h1v1h1v1h1v1h1v1H3v1H2v1H1v1H0z" fill="currentColor"/></svg><span>PLAY</span></button>
+        <button type="button" role="menuitem" tabindex="-1" class="home-item" id="menuContinue" data-menu="continue"><svg class="home-cursor" viewBox="0 0 4 7" aria-hidden="true" shape-rendering="crispEdges"><path d="M0 0h1v1h1v1h1v1h1v1H3v1H2v1H1v1H0z" fill="currentColor"/></svg><span>RESUME</span></button>
+        <button type="button" role="menuitem" tabindex="-1" class="home-item" data-menu="themes"><svg class="home-cursor" viewBox="0 0 4 7" aria-hidden="true" shape-rendering="crispEdges"><path d="M0 0h1v1h1v1h1v1h1v1H3v1H2v1H1v1H0z" fill="currentColor"/></svg><span>THEMES</span></button>
+        <button type="button" role="menuitem" tabindex="-1" class="home-item" data-menu="stats"><svg class="home-cursor" viewBox="0 0 4 7" aria-hidden="true" shape-rendering="crispEdges"><path d="M0 0h1v1h1v1h1v1h1v1H3v1H2v1H1v1H0z" fill="currentColor"/></svg><span>STATS</span></button>
+        <button type="button" role="menuitem" tabindex="-1" class="home-item" data-menu="settings"><svg class="home-cursor" viewBox="0 0 4 7" aria-hidden="true" shape-rendering="crispEdges"><path d="M0 0h1v1h1v1h1v1h1v1H3v1H2v1H1v1H0z" fill="currentColor"/></svg><span>SETTINGS</span></button>
+        <button type="button" role="menuitem" tabindex="-1" class="home-item" data-menu="help"><svg class="home-cursor" viewBox="0 0 4 7" aria-hidden="true" shape-rendering="crispEdges"><path d="M0 0h1v1h1v1h1v1h1v1H3v1H2v1H1v1H0z" fill="currentColor"/></svg><span>HOW TO PLAY</span></button>
+        <button type="button" role="menuitem" tabindex="-1" class="home-item" data-menu="quit"><svg class="home-cursor" viewBox="0 0 4 7" aria-hidden="true" shape-rendering="crispEdges"><path d="M0 0h1v1h1v1h1v1h1v1H3v1H2v1H1v1H0z" fill="currentColor"/></svg><span>QUIT</span></button>
+      </nav>
+      <div class="home-art" aria-hidden="true"><img class="home-mascot" id="menuMascot" alt="" width="512" height="512"></div>
+    </div>
+    <p class="home-press" id="menuKeys">PRESS ENTER</p>
+  </main>
+  <footer class="home-foot">
+    <span class="menu-pill" id="menuPuzzle">Puzzle</span>
+    <label class="menu-sound"><svg class="ic" aria-hidden="true"><use href="#i-sound"/></svg><span>Sound</span>
+      <input type="checkbox" role="switch" id="menuSound"><i class="switch" aria-hidden="true"></i></label>
+  </footer>
+</div>
+<dialog class="theme-dialog" id="themeDialog" aria-labelledby="themeHeading">
+  <button type="button" class="theme-x" id="themeX" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
+  <h2 id="themeHeading"><svg class="ic" aria-hidden="true"><use href="#i-palette"/></svg>Choose a Theme</h2>
+  <p class="theme-sub">Give Daily Puzzle a new look and seasonal vibe!</p>
+  <div class="theme-grid" id="themeGrid" role="radiogroup" aria-labelledby="themeHeading"></div>
+  <div class="theme-actions">
+    <button type="button" class="menu-btn" id="themeCancel">Cancel</button>
+    <button type="button" class="menu-btn primary" id="themeApply">Apply Theme</button>
+  </div>
+</dialog>
 
 <main id="love-puzzle" class="shell" data-mode="edit">
   <div class="layout">
@@ -13,6 +100,7 @@
       <header class="app-head">
         <div class="brand"><img alt="" width="34" height="34" src="embed:daily_puzzle_icon.svg">Daily Puzzle</div>
         <div class="head-actions">
+          <button type="button" class="icon-btn" id="homeBtn" aria-label="Home menu" title="Home" hidden><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3.5 11 12 3.5 20.5 11M5.5 9.5V20h4.5v-5.5h4V20h4.5V9.5"/></svg></button>
           <button class="icon-btn" id="statsBtn" aria-label="Progress" title="Progress"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19V9h4v10m2 0V5h4v14m2 0v-7h4v7M2 19h20"/></svg></button>
           <button class="icon-btn" id="helpBtn" aria-label="How to play" title="How to play"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 1 1 4 2c-1.2.9-1.6 1.4-1.6 2.7M12 17.5h.02"/></svg></button>
           <button type="button" class="icon-btn" id="settingsBtn" aria-label="Settings" title="Settings"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m10 3-1 2.5-2 .8-2.5-.8-2 3.5L4 11v2l-1.5 2 2 3.5 2.5-.8 2 .8 1 2.5h4l1-2.5 2-.8 2.5.8 2-3.5-1.5-2v-2l1.5-2-2-3.5-2.5.8-2-.8L14 3z"/><circle cx="12" cy="12" r="3"/></svg></button>
@@ -41,16 +129,21 @@
         <div class="board result-board" id="resultBoard" role="group" aria-label="Puzzle result"></div>
         <div class="reveal-card" id="revealCard" aria-live="polite" hidden>
           <div class="mascot-line" aria-hidden="true">
-            <img class="mascot-dinosaur" alt="" width="126" height="150" src="embed:dino_original_exact.png">
+            <img class="season-mascot" id="seasonMascot" alt="" width="512" height="512">
             <img class="mascot-chest" alt="" width="130" height="113" src="embed:chest_original_exact.png">
           </div>
           <p class="reveal-desc custom-ending" id="revealDesc"></p>
+          <div class="buttonrow reveal-actions" id="revealActions">
+            <button type="button" class="btn primary" id="playAgain"><span>Play Again</span><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg></button>
+            <button type="button" class="btn" id="copyMessage"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg><span>Copy message</span></button>
+          </div>
           <button type="button" class="report-button" id="reportScam">Report this scam</button>
           <p class="complaint" id="complaint" role="status" hidden></p>
         </div>
         <div class="buttonrow result-actions" id="resultActions" hidden>
           <button type="button" class="btn primary" id="continueGame">Next level</button>
           <button type="button" class="btn" id="retryLevel" hidden>Retry level</button>
+          <button type="button" class="btn" id="revealNow" hidden>Reveal</button>
           <button type="button" class="btn" id="shareResult">Share</button>
         </div>
         <p id="shareNotice" class="share-notice" role="status"></p>
@@ -61,6 +154,21 @@
         <h2 id="helpHeading"></h2>
         <p id="helpText"></p>
         <div class="help-examples" id="helpExamples" aria-label="Example word feedback" role="group"></div>
+        <div class="season-field" id="seasonField" hidden>
+          <label for="seasonSelect">Seasonal theme</label>
+          <select id="seasonSelect"></select>
+        </div>
+        <fieldset class="audio-settings" id="audioSettings" hidden>
+          <legend>Audio</legend>
+          <label><input type="checkbox" id="soundControl"> Game sounds</label>
+          <label><input type="checkbox" id="musicControl"> Background music</label>
+          <label for="volumeControl">Volume</label>
+          <input type="range" id="volumeControl" min="0" max="100" step="5">
+        </fieldset>
+        <div class="settings-export" id="exportSettings" hidden>
+          <button type="button" class="btn" id="downloadCustomBtn">Export player HTML</button>
+          <p id="exportNotice" role="status"></p>
+        </div>
         <button type="button" class="btn" id="themeBtn" aria-pressed="false" hidden>Dark mode</button>
         <button type="button" class="btn primary" id="helpClose">Got it</button>
       </dialog>
@@ -73,6 +181,7 @@
       </dialog>
     </section>
 
+    <!-- editor:start -->
     <aside class="panel" id="editor" lang="th">
       <h2>ตั้งค่าเกม</h2>
       <form id="answerForm">
@@ -83,6 +192,7 @@
       </form>
       <div class="setting-group">
         <h2>ข้อความเซอร์ไพรส์ด่าน 3</h2>
+        <p>เลือกธีมและดาวน์โหลดไฟล์เกมผ่าน Settings</p>
         <p>ใส่ได้ 6 บรรทัด บรรทัดละไม่เกิน 5 ตัว ใช้ A–Z, ♡ หรือ ♥</p>
         <div class="editor-grid" id="editorGrid"></div>
         <div class="presetrow">
@@ -97,10 +207,10 @@
         <div class="buttonrow">
           <button type="button" class="btn" id="previewBtn">ดูตัวอย่างด่าน 3</button>
           <button type="button" class="btn" id="resetBtn">เริ่มเกมใหม่</button>
-          <button type="button" class="btn primary" id="downloadCustomBtn">ดาวน์โหลดเกม 5 ด่าน</button>
         </div>
       </div>
     </aside>
+    <!-- editor:end -->
   </div>
 </main>
 <!-- app --></body></html>

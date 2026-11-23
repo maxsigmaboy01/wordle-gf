@@ -2,3 +2,11 @@
 node_modules/
 dist/
 .playwright-mcp/
+
+.DerivedData/
+xcuserdata/
+*.xcuserstate
+ios/player.local.json
+
+/src-tauri/target/
+/src-tauri/gen/

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main-window",
+  "description": "Event listening for the main window; app commands (export_game, quit_app) are allowed by default.",
+  "windows": ["main"],
+  "permissions": ["core:event:default"]
+}

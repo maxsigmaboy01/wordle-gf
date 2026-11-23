@@ -1,6 +1,7 @@
 export function readStorage(key) {
   try {
-    return JSON.parse(localStorage.getItem(key));
+    const raw = window.DailyPuzzleNative ? window.DailyPuzzleNative.get(key) : localStorage.getItem(key);
+    return JSON.parse(raw);
   } catch {
     return null;
   }
@@ -8,7 +9,9 @@ export function readStorage(key) {
 
 export function saveStorage(key, value) {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    const raw = JSON.stringify(value);
+    if (window.DailyPuzzleNative) window.DailyPuzzleNative.set(key, raw);
+    else localStorage.setItem(key, raw);
   } catch {}
 }
 

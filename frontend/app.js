@@ -1,27 +1,61 @@
 import { ATTEMPTS as rows, WORD_LENGTH as len, createPuzzle } from '../backend/game.js';
-import { LEVEL_COUNT, SURPRISE_LEVEL, campaignAnswers, nextLevel, resumeLevel } from '../backend/campaign.js';
+import { LEVEL_COUNT, SURPRISE_LEVEL, baseAnswers, campaignAnswers, isSurpriseLevel, nextLevel, resolveSurprise, resumeLevel } from '../backend/campaign.js';
 import words from '../backend/data/words.txt';
 import answers from '../backend/data/answers.txt';
+import { localDay } from '../backend/progress.js';
+import { setupAudio } from './audio.js';
+import { setupMenu, menuEnabled } from './menu.js';
+import { setupSeasons } from './seasons.js';
+import { paintMascot } from './mascots.js';
+import { DEFAULT_HEADLINE, HEADLINE_MAX, applyPrefs, createMotion, loadPrefs, loadSurprise, setupSettings } from './settings.js';
+import { logResult, noteReveal } from './progress-store.js';
+import { showToast } from './toast.js';
 import { readStorage, roundIdentifier, saveStorage } from './storage.js';
 import { el, makeRow, ranks, renderExamples, renderStats } from './views.js';
 
 const root = document.getElementById('love-puzzle');
 const $ = id => document.getElementById(id);
 const board = $('board'), keyboard = $('keyboard'), resultDialog = $('resultDialog');
-const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const menuOn = menuEnabled();
+const prefs = menuOn ? loadPrefs() : null;
+// System preference or, in the mac app, the in-app override.
+const reducedMotion = createMotion(Boolean(prefs?.reducedMotion));
 const puzzle = createPuzzle({ words, answers });
+const audio = setupAudio({
+  allowMute: menuOn,
+  soundControl: $('soundControl'),
+  musicControl: $('musicControl'),
+  volumeControl: $('volumeControl'),
+  seasonSelect: $('seasonSelect')
+});
 const presets = {
   safe: ['YOU', 'ARE', 'MY', 'SAFE', 'PLACE', '♡'],
   love: ['I', 'LOVE', 'YOU', 'SO', 'MUCH', '♡'],
   happy: ['YOU', 'MAKE', 'ME', 'SO', 'HAPPY', '♡']
 };
 const settings = JSON.parse(root.dataset.puzzleConfig || '{}');
+const seasons = setupSeasons({
+  select: $('seasonSelect'),
+  mascot: $('seasonMascot'),
+  reducedMotion,
+  settings,
+  isEditor: Boolean($('editor'))
+});
 const defaultEnding = "I just wanted to say: I love you. ♡";
-let message = settings.message || presets.safe.slice();
-let ending = settings.ending ?? defaultEnding;
+// The mac app keeps its own surprise settings; the exported player carries them in its config;
+// the web player and iOS builds have none and keep the classic always-on surprise.
+const storedSurprise = menuOn ? loadSurprise({ message: presets.safe, note: defaultEnding }) : null;
+let surprise = resolveSurprise(storedSurprise ?? settings.surprise, root.dataset.mode === 'play' ? 'export' : 'app');
+const cleanHeadline = value => (typeof value === 'string' && value.trim() && value.length <= HEADLINE_MAX ? value : DEFAULT_HEADLINE);
+let headline = cleanHeadline(storedSurprise ? storedSurprise.headline : settings.headline);
+let message = storedSurprise ? storedSurprise.message.slice() : settings.message || presets.safe.slice();
+let ending = storedSurprise ? storedSurprise.note : settings.ending ?? defaultEnding;
 const editorAnswersKey = 'daily-puzzle-editor-levels';
-let levelAnswers = campaignAnswers(settings.answers ?? ($('editor') ? readStorage(editorAnswersKey) : null), puzzle.isWord);
+let overrides = settings.answers ?? ($('editor') ? readStorage(editorAnswersKey) : null);
+let levelAnswers = campaignAnswers(overrides, puzzle.isWord, storedSurprise || settings.surprise ? surprise : undefined);
 let level, round, roundId, puzzleId, isBusy;
+let menu, settingsUI;
+let surpriseConfig = null;
 const timers = new Set();
 const histories = new Map();
 
@@ -43,6 +77,7 @@ function flipRow(row, nextRow, delay = 0) {
     row.replaceWith(nextRow);
     return;
   }
+  schedule(() => audio.play('tile_flip'), delay);
   [...row.children].forEach((tile, col) => {
     const next = nextRow.children[col];
     const start = delay + col * 35;
@@ -113,6 +148,7 @@ function setStatus(text, error = false) {
 }
 
 function rejectGuess(text) {
+  audio.play('invalid_word');
   setStatus(text, true);
   const row = board.children[round.guesses.length];
   row.classList.remove('shake');
@@ -124,6 +160,7 @@ function rejectGuess(text) {
 function inputKey(key) {
   if (resultDialog.open || isBusy || round.finished()) return;
   if (key === '↵' || key === 'ENTER') {
+    audio.play('key_enter');
     const row = round.guesses.length;
     const error = round.submit();
     if (error) return rejectGuess(error);
@@ -134,7 +171,13 @@ function inputKey(key) {
     updateUI(row);
     flipRow(board.children[row], makeRow(round.guesses[row], round.colors[row]));
     const finishGuess = () => {
+      audio.play(round.colors[row].includes(2) ? 'correct_letter' : 'guess_submitted');
+      if (!round.finished() && round.guesses.length === rows - 1) audio.play('last_try');
       updateUI();
+      if (menuOn) {
+        const greens = round.colors[row].filter(color => color === 2).length;
+        document.dispatchEvent(new CustomEvent('puzzlefx', { detail: { type: round.solved() ? 'win' : 'row', row, greens } }));
+      }
       if (round.finished()) finishRound();
       else {
         isBusy = false;
@@ -146,6 +189,8 @@ function inputKey(key) {
     return;
   }
   if (!round.type(key)) return;
+  if (key === '⌫' || key === 'BACKSPACE') audio.play('key_backspace');
+  else audio.tap();
 
   setStatus('');
   updateUI();
@@ -155,18 +200,29 @@ function inputKey(key) {
   }
 }
 
+// The surprise level failed while the surprise is on and set to reveal by itself.
+function autoRevealNow() {
+  return isSurpriseLevel(level, surprise) && surprise.autoReveal && !round.solved();
+}
+
 function finishRound() {
   isBusy = true;
   recordResult();
+  const fakeOut = autoRevealNow();
+  if (fakeOut) audio.play('game_over_fakeout');
   setStatus(round.solved() ? 'Puzzle solved.' : 'Better luck next time.');
-  schedule(showStageResult, level === SURPRISE_LEVEL ? 1020 : 400);
+  schedule(showStageResult, fakeOut ? 1020 : 400);
 }
 
 function prepareResult(preview) {
   clearTimers();
+  resultDialog.classList.remove('rv-final');
+  if ($('playAgain')) $('playAgain').hidden = false;
   const { guesses, colors } = round;
   $('revealCard').hidden = true;
+  seasons.stopMascot();
   $('resultActions').hidden = true;
+  $('revealNow').hidden = true;
   $('resultNote').hidden = false;
   $('complaint').textContent = '';
   $('complaint').hidden = true;
@@ -191,7 +247,7 @@ function completeResult({ preview = false, canRetry = false } = {}) {
 }
 
 function showStageResult() {
-  if (level === SURPRISE_LEVEL) {
+  if (autoRevealNow()) {
     reveal();
     return;
   }
@@ -202,31 +258,50 @@ function showStageResult() {
   $('resultTitle').textContent = level === LEVEL_COUNT ? 'Five levels complete' : won ? 'Level cleared' : 'Out of guesses';
   $('resultNote').textContent = won
     ? 'Solved in ' + attempts + (attempts === 1 ? ' guess.' : ' guesses.')
-    : 'The word was ' + levelAnswers[level - 1] + '.';
+    : levelAnswers[level - 1] ? 'The word was ' + levelAnswers[level - 1] + '.' : 'Better luck next time.';
   $('closeResult').disabled = false;
   if (!resultDialog.open) resultDialog.showModal();
   completeResult({ canRetry: !won });
+  // Manual activation: the player (or whoever is holding the phone) taps Reveal.
+  $('revealNow').hidden = !(isSurpriseLevel(level, surprise) && surprise.manualReveal && !won);
 }
 
-function reveal(preview = false) {
+function showRevealMascot() {
+  // The app uses the mascot chosen in Settings; the player keeps the theme's own.
+  if (menuOn) paintMascot($('seasonMascot'), prefs.mascot, reducedMotion.matches, seasons.current());
+  else seasons.showMascot();
+}
+
+let lastReveal = null;
+
+function reveal(preview = false, content = { message, ending, headline }) {
   prepareResult(preview);
+  lastReveal = content;
+  // The final-reveal look (ref 06) is for the app only; the player keeps its own layout.
+  resultDialog.classList.toggle('rv-final', menuOn);
+  if ($('playAgain')) $('playAgain').hidden = preview;
   isBusy = true;
   $('resultTitle').textContent = preview ? 'Level 3 preview' : 'Game over';
   $('resultNote').textContent = preview ? '' : 'Better luck next time.';
   $('resultNote').hidden = preview;
-  $('revealDesc').textContent = ending;
-  $('revealDesc').hidden = !ending;
+  $('revealDesc').textContent = content.ending;
+  $('revealDesc').hidden = !content.ending;
   $('closeResult').disabled = true;
   if (!resultDialog.open) resultDialog.showModal();
-  message.forEach((line, index) => {
+  content.message.forEach((line, index) => {
     flipRow($('resultBoard').children[index], makeRow(line, null, index), index * 155);
   });
 
   function finishReveal() {
-    $('resultTitle').textContent = 'You got baited, respectfully.';
+    $('resultTitle').textContent = cleanHeadline(content.headline ?? headline);
+    showRevealMascot();
+    audio.play('plot_twist_reveal');
+    if (menuOn && !preview) noteReveal();
+    schedule(() => { if (resultDialog.open) audio.play('treasure_pop'); }, 280);
     $('revealCard').hidden = false;
     $('resultBoard').setAttribute('aria-label', 'Revealed message');
-    $('resultNote').hidden = true;
+    $('resultNote').hidden = !menuOn;
+    if (menuOn) $('resultNote').textContent = 'Six guesses. Zero chance.\nThis game was rigged from the start.';
     completeResult({ preview });
   }
   if (reducedMotion.matches) finishReveal();
@@ -234,7 +309,10 @@ function reveal(preview = false) {
 }
 
 function identity() {
-  const data = JSON.stringify([root.dataset.mode, levelAnswers,
+  // In the app, the surprise level flips between steered (null) and a real word with the settings;
+  // keep it out of the key (baseAnswers) so saves and stats survive changes and match older saves.
+  const answers = menuOn ? baseAnswers(overrides, puzzle.isWord) : levelAnswers;
+  const data = JSON.stringify([root.dataset.mode, answers,
     root.dataset.mode === 'play' ? [settings.session, message, ending] : null]);
   let hash = 2166136261;
   for (const char of data) hash = Math.imul(hash ^ char.codePointAt(0), 16777619);
@@ -264,16 +342,24 @@ function saveProgress() {
     id: roundId,
     level,
     guesses: round.guesses,
-    typed: round.typed
+    typed: round.typed,
+    answer: levelAnswers[level - 1] ?? null
   });
 }
 
 function recordResult() {
   const results = history();
   if (results.some(result => result.id === roundId)) return;
-  results.push({ id: roundId, level, attempts: round.guesses.length, solved: round.solved() });
+  // `day` feeds streaks and the calendar; `surprise` marks a steered round (never counts as a win).
+  const entry = {
+    id: roundId, level, attempts: round.guesses.length, solved: round.solved(), day: localDay(),
+    surprise: (levelAnswers[level - 1] ?? null) === null
+  };
+  results.push(entry);
   histories.set(historyKey(), results);
   saveStorage(historyKey(), results);
+  // The app also keeps one log across every campaign, so daily streaks do not reset with new answers.
+  if (menuOn) logResult(entry);
 }
 
 function startLevel(number, saved = null) {
@@ -287,6 +373,7 @@ function startLevel(number, saved = null) {
   round.restore(saved);
   saveProgress();
   $('puzzleNumber').textContent = 'Puzzle No. ' + (100 + puzzleId % 900);
+  menu?.syncPlay();
   $('levelNumber').textContent = 'Level ' + level + ' of ' + LEVEL_COUNT;
   $('levelTrack').max = LEVEL_COUNT;
   $('levelTrack').value = level;
@@ -297,8 +384,16 @@ function startLevel(number, saved = null) {
 
 function resetCampaign(restore = false) {
   puzzleId = identity();
-  const saved = restore ? readStorage(progressKey()) : null;
-  startLevel(resumeLevel(saved), saved);
+  let saved = restore ? readStorage(progressKey()) : null;
+  const next = resumeLevel(saved);
+  // The level was saved with another answer (steered or not): restart it only. Old saves carry no mark
+  // except level 3, which was steered; any other unmarked level held its base answer.
+  if (menuOn && saved) {
+    const stored = 'answer' in saved ? saved.answer ?? null
+      : next === SURPRISE_LEVEL ? null : baseAnswers(overrides, puzzle.isWord)[next - 1] ?? null;
+    if (stored !== (levelAnswers[next - 1] ?? null)) saved = null;
+  }
+  startLevel(next, saved);
 }
 
 $('viewResult').addEventListener('click', showStageResult);
@@ -307,8 +402,10 @@ resultDialog.addEventListener('cancel', event => {
   if (isBusy) event.preventDefault();
 });
 resultDialog.addEventListener('close', () => {
+  if (!resultDialog.open) seasons.stopMascot();
   if (!$('viewResult').hidden) $('viewResult').focus({ preventScroll: true });
 });
+$('revealNow').addEventListener('click', () => reveal());
 $('continueGame').addEventListener('click', () => {
   startLevel(nextLevel(level));
   board.focus();
@@ -323,11 +420,39 @@ $('reportScam').addEventListener('click', event => {
   event.currentTarget.disabled = true;
 });
 
+$('playAgain')?.addEventListener('click', () => {
+  resetCampaign();
+  board.focus({ preventScroll: true });
+});
+
+$('copyMessage')?.addEventListener('click', async () => {
+  const lines = (lastReveal?.message ?? message).filter(Boolean);
+  const note = lastReveal?.ending ?? ending;
+  const text = lines.join('\n') + (note ? '\n\n' + note : '');
+  try {
+    await navigator.clipboard.writeText(text);
+    $('shareNotice').textContent = '';
+    $('shareFallback').hidden = true;
+    showToast('Message copied');
+  } catch {
+    // No clipboard access: show the text selected so it can be copied by hand.
+    const field = $('shareFallback');
+    field.value = lines.join(' ') + (note ? ' - ' + note : '');
+    field.hidden = false;
+    field.select();
+    $('shareNotice').textContent = 'Copy the message below.';
+  }
+});
+
 $('shareResult').addEventListener('click', async () => {
   const score = round.solved() ? round.guesses.length : 'X';
   const text = 'Daily Puzzle #' + (100 + puzzleId % 900) +
     ' · Level ' + level + '/' + LEVEL_COUNT + ' · ' + score + '/' + rows;
   try {
+    if (window.DailyPuzzleNative) {
+      window.DailyPuzzleNative.share(text);
+      return;
+    }
     if (navigator.share) {
       await navigator.share({ text });
       return;
@@ -378,7 +503,11 @@ function editLevelAnswers() {
     input.setCustomValidity(/^[A-Z]{5}$/.test(word) && !puzzle.isWord(word)
       ? 'เลือกคำภาษาอังกฤษที่มีในพจนานุกรม'
       : '');
-    if (!input.reportValidity()) return null;
+    if (!input.validity.valid) {
+      if ($('help').open) $('help').close();
+      input.reportValidity();
+      return null;
+    }
     result[Number(input.dataset.index)] = word;
   }
   return result;
@@ -409,32 +538,47 @@ function renderLevelEditor() {
   });
 }
 
-function downloadGame() {
-  const answers = editLevelAnswers();
+async function downloadGame(button = $('downloadCustomBtn'), notice = $('exportNotice')) {
+  const answers = menuOn ? levelAnswers.slice() : editLevelAnswers();
   if (!answers) return;
 
   const copy = document.documentElement.cloneNode(true);
   delete copy.dataset.theme;
+  delete copy.dataset.season;
+  delete copy.dataset.skin;
+  copy.classList.remove('has-menu', 'reduce-motion', 'hc-tiles');
   const game = copy.querySelector('#love-puzzle');
   game.dataset.mode = 'play';
   game.dataset.puzzleConfig = JSON.stringify({
     message,
     ending,
+    headline,
     answers,
-    session: roundIdentifier()
+    season: seasons.current(),
+    session: roundIdentifier(),
+    ...(menuOn ? { surprise: surpriseConfig } : {})
   });
   game.querySelector('#editor').remove();
-  copy.querySelector('[rel="icon"]').href = game.querySelector('.brand img').getAttribute('src');
+  game.classList.remove('menu-away');
+  // Undo the app shell: unwrap the play layout, then drop everything only the app uses.
+  for (const wrapper of copy.querySelectorAll('[data-menu-wrap]')) wrapper.replaceWith(...wrapper.childNodes);
+  for (const node of copy.querySelectorAll('[data-menu-only], #revealActions')) node.remove();
+  game.querySelector('#resultDialog').classList.remove('rv-final');
+  for (const id of ['menuIcons', 'menuScreen', 'settingsScreen', 'themeDialog', 'homeBtn']) copy.querySelector('#' + id)?.remove();
   copy.querySelector('[rel="apple-touch-icon"]')?.remove();
   copy.querySelector('[rel="manifest"]')?.remove();
   for (const id of ['board', 'keyboard', 'resultBoard', 'revealDesc', 'levelNumber', 'puzzleNumber', 'turnBadge', 'turnCounter',
-    'resultNote', 'complaint', 'shareNotice', 'status', 'helpHeading', 'helpText', 'helpExamples', 'statsMetrics', 'statsChart']) {
+    'resultNote', 'complaint', 'shareNotice', 'exportNotice', 'status', 'helpHeading', 'helpText', 'helpExamples', 'statsMetrics', 'statsChart']) {
     game.querySelector('#' + id).replaceChildren();
   }
   game.querySelector('#help').removeAttribute('open');
   game.querySelector('#statsDialog').removeAttribute('open');
   game.querySelector('#shareFallback').hidden = true;
   game.querySelector('#themeBtn').hidden = true;
+  game.querySelector('#seasonField').hidden = true;
+  game.querySelector('#audioSettings').hidden = true;
+  game.querySelector('#exportSettings').hidden = true;
+  game.querySelector('#seasonMascot').removeAttribute('src');
   delete game.querySelector('#status').dataset.tone;
   game.querySelector('#resultDialog').removeAttribute('open');
   game.querySelector('#resultTitle').textContent = 'Game over';
@@ -444,6 +588,19 @@ function downloadGame() {
   game.querySelector('#resultActions').hidden = true;
   game.querySelector('#complaint').hidden = true;
   const html = '<!doctype html>\n' + copy.outerHTML;
+  const invoke = window.__TAURI__?.core?.invoke;
+  if (invoke) {
+    button.disabled = true;
+    notice.textContent = '';
+    try {
+      if (await invoke('export_game', { html })) notice.textContent = 'Player HTML saved.';
+    } catch {
+      notice.textContent = 'Could not save the player HTML.';
+    } finally {
+      button.disabled = false;
+    }
+    return;
+  }
   const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
   const link = el('a');
   link.href = url;
@@ -458,29 +615,37 @@ const help = $('help');
 const statsDialog = $('statsDialog');
 
 function openHelp(showTheme = false) {
+  audio.play('menu_open');
   $('helpHeading').textContent = showTheme ? 'Settings' : 'How to play';
   $('helpText').textContent = showTheme
-    ? 'Choose a theme for this browser.'
+    ? 'Choose a theme, display mode, and audio preferences.'
     : 'Each level gives you six tries to guess a five-letter word. Green marks the right spot, yellow marks a different spot, and gray means the letter is absent.';
   $('themeBtn').hidden = !showTheme;
+  $('seasonField').hidden = !showTheme;
+  $('audioSettings').hidden = !showTheme;
+  $('exportSettings').hidden = !showTheme || !$('editor');
+  $('exportNotice').textContent = '';
   $('helpExamples').hidden = showTheme;
   $('helpGamepad').hidden = showTheme;
   if (!showTheme) renderExamples($('helpExamples'));
   help.showModal();
-  $(showTheme ? 'themeBtn' : 'helpClose').focus();
+  $(showTheme ? 'seasonSelect' : 'helpClose').focus();
 }
 
-$('helpBtn').addEventListener('click', () => openHelp());
-$('settingsBtn').addEventListener('click', () => openHelp(true));
+$('helpBtn').addEventListener('click', () => (menuOn && isBusy ? menu.go('help') : openHelp()));
+$('settingsBtn').addEventListener('click', () => (menuOn ? menu.go('settings') : openHelp(true)));
 $('helpClose').addEventListener('click', () => help.close());
 $('statsBtn').addEventListener('click', () => {
+  if (menuOn) return menu.go('stats');
+  if (isBusy) return;
+  audio.play('menu_open');
   renderStats($('statsMetrics'), $('statsChart'), history());
   statsDialog.showModal();
 });
 $('statsClose').addEventListener('click', () => statsDialog.close());
 
 document.addEventListener('keydown', event => {
-  if (help.open || statsDialog.open) return;
+  if (help.open || statsDialog.open || document.querySelector('dialog[open]') || menu?.visible()) return;
   const target = event.target;
   if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || event.isComposing ||
       target.isContentEditable || target.closest?.('input, textarea, select')) return;
@@ -498,7 +663,7 @@ document.addEventListener('keydown', event => {
   inputKey(key);
 });
 
-if ($('editor')) {
+if ($('editor') && !menuOn) {
   const answerStatus = $('answerStatus');
   renderLevelEditor();
   $('answerForm').addEventListener('submit', event => {
@@ -534,9 +699,84 @@ if ($('editor')) {
   }
   $('previewBtn').addEventListener('click', () => { if (!isBusy) reveal(true); });
   $('resetBtn').addEventListener('click', () => { resetCampaign(); board.focus(); });
-  $('downloadCustomBtn').addEventListener('click', downloadGame);
+  $('downloadCustomBtn').addEventListener('click', () => downloadGame());
   renderEditor();
 }
 
 buildKeyboard();
 resetCampaign(true);
+
+function applySurprise(next) {
+  surprise = resolveSurprise(next, 'app');
+  surpriseConfig = { enabled: next.enabled, failAll: next.failAll, reveal: next.reveal, activation: next.activation, level: surprise.level };
+  message = next.message.slice();
+  ending = next.note;
+  headline = cleanHeadline(next.headline);
+  const answers = campaignAnswers(overrides, puzzle.isWord, surprise);
+  if (JSON.stringify(answers) === JSON.stringify(levelAnswers)) return;
+  // A level flipped between "steered" and "a real word". Only the current level restarts, and only if
+  // its own answer changed; other levels keep their progress.
+  const changed = (answers[level - 1] ?? null) !== (levelAnswers[level - 1] ?? null);
+  levelAnswers = answers;
+  if (changed) startLevel(level);
+}
+
+if (menuOn) {
+  if ($('editor')) $('editor').hidden = true;
+  const { enabled, failAll, reveal: revealAfter, activation } = storedSurprise;
+  surpriseConfig = { enabled, failAll, reveal: revealAfter, activation, level: surprise.level };
+  applyPrefs(prefs, reducedMotion);
+  settingsUI = setupSettings({
+    root,
+    prefs,
+    seasons,
+    seasonSelect: $('seasonSelect'),
+    audio,
+    motion: reducedMotion,
+    surprise: storedSurprise,
+    isWord: puzzle.isWord,
+    getAnswers: () => levelAnswers,
+    setAnswers: next => {
+      // The steered slot arrives as null: keep whatever custom word it had.
+      overrides = next.map((word, index) => word ?? overrides?.[index] ?? null);
+      saveStorage(editorAnswersKey, overrides);
+      levelAnswers = campaignAnswers(overrides, puzzle.isWord, surprise);
+      resetCampaign();
+    },
+    applySurprise,
+    presets,
+    testReveal: (lines, note, title) => { if (!isBusy) reveal(true, { message: lines, ending: note, headline: title }); },
+    exportGame: downloadGame,
+    goHome: () => menu.go('home')
+  });
+  menu = setupMenu({
+    root,
+    prefs,
+    seasons,
+    reducedMotion,
+    soundControl: $('soundControl'),
+    seasonSelect: $('seasonSelect'),
+    dialogs: [resultDialog, help, statsDialog],
+    settings: settingsUI,
+    startOnGame: prefs.startup === 'resume',
+    puzzleNumber: () => 100 + puzzleId % 900,
+    hasProgress: () => {
+      const saved = readStorage(progressKey());
+      return Boolean(saved && (saved.level > 1 || saved.guesses?.length || saved.typed));
+    },
+    play: name => audio.play(name),
+    openHelp: () => openHelp(),
+    openSettings: () => settingsUI.show(),
+    getHistory: history,
+    needsConfirm: () => {
+      const saved = readStorage(progressKey());
+      return Boolean(saved && (saved.level > 1 || saved.guesses?.length));
+    },
+    isBusy: () => isBusy,
+    newGame: () => resetCampaign(),
+    focusGame: () => board.focus({ preventScroll: true })
+  });
+  // Preview deep links for the browser build.
+  if (location.hash === '#menu-settings') settingsUI.show('general');
+  if (location.hash === '#menu-surprise') settingsUI.show('surprise');
+}

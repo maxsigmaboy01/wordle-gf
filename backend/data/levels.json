@@ -1,7 +1,4 @@
-[
-  "PLANT",
-  "CLOUD",
-  null,
-  "BRAVE",
-  "SPARK"
-]
+{
+  "answers": ["APPLE", "CLOUD", null, "BRAVE", "SPARK"],
+  "surpriseOffAnswer": "OCEAN"
+}
