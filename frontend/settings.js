@@ -20,7 +20,7 @@ export const HEADLINE_MAX = 60;
 const SURPRISE_PRESETS = [['safe', 'Safe Place'], ['love', 'I Love You'], ['happy', 'So Happy']];
 
 export const PREF_DEFAULTS = Object.freeze({
-  startup: 'menu', reducedMotion: false, highContrast: false, keyHints: true, appIcon: 'classic', mascot: 'match', tileSkin: 'classic', mascotVersion: 2
+  startup: 'menu', reducedMotion: false, highContrast: false, keyHints: true, hints: true, appIcon: 'classic', mascot: 'match', tileSkin: 'classic', mascotVersion: 2
 });
 
 export function loadPrefs() {
@@ -28,7 +28,7 @@ export function loadPrefs() {
   const prefs = { ...PREF_DEFAULTS };
   if (saved && typeof saved === 'object') {
     if (saved.startup === 'menu' || saved.startup === 'resume') prefs.startup = saved.startup;
-    for (const key of ['reducedMotion', 'highContrast', 'keyHints']) {
+    for (const key of ['reducedMotion', 'highContrast', 'keyHints', 'hints']) {
       if (typeof saved[key] === 'boolean') prefs[key] = saved[key];
     }
     if (appIcons.some(icon => icon[0] === saved.appIcon)) prefs.appIcon = saved.appIcon;
@@ -470,7 +470,12 @@ export function setupSettings(app) {
   exportBtn.addEventListener('click', () => app.exportGame(exportBtn, exportNote));
   exportRow.append(el('h3', '', 'Share your puzzle'),
     el('p', 'set-sub', 'Save a single offline HTML file with your answers, theme and surprise.'), exportBtn, exportNote);
-  gameCard.append(answerForm, exportRow);
+  const hintsSwitch = switchRow({
+    iconName: 'star', title: 'Hints', hint: 'Show the star hint button while you play. Stars are kept if you turn it off.',
+    checked: prefs.hints, onChange: value => { setPref('hints', value); app.setHints?.(value); }
+  });
+  hintsSwitch.label.classList.add('set-hints');
+  gameCard.append(hintsSwitch.label, answerForm, exportRow);
 
   columns.append(themeCard, skinCard, mascotCard, audioCard, startCard, accessCard, iconCard, gameCard);
 

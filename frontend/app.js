@@ -2,9 +2,11 @@ import { ATTEMPTS as rows, WORD_LENGTH as len, createPuzzle } from '../backend/g
 import { LEVEL_COUNT, SURPRISE_LEVEL, baseAnswers, campaignAnswers, isSurpriseLevel, nextLevel, resolveSurprise, resumeLevel } from '../backend/campaign.js';
 import words from '../backend/data/words.txt';
 import answers from '../backend/data/answers.txt';
+import { awardLevelWin, createHintState, normalizeHintState } from '../backend/hints.js';
 import { localDay } from '../backend/progress.js';
 import { setupAudio } from './audio.js';
 import { setupMenu, menuEnabled } from './menu.js';
+import { setupHintsUI } from './hints-ui.js';
 import { setupSeasons } from './seasons.js';
 import { paintMascot } from './mascots.js';
 import { DEFAULT_HEADLINE, HEADLINE_MAX, applyPrefs, createMotion, loadPrefs, loadSurprise, setupSettings } from './settings.js';
@@ -54,7 +56,11 @@ const editorAnswersKey = 'daily-puzzle-editor-levels';
 let overrides = settings.answers ?? ($('editor') ? readStorage(editorAnswersKey) : null);
 let levelAnswers = campaignAnswers(overrides, puzzle.isWord, storedSurprise || settings.surprise ? surprise : undefined);
 let level, round, roundId, puzzleId, isBusy;
-let menu, settingsUI;
+let menu, settingsUI, hintsUI;
+// Star hints for the 5-level session (app shell only). `enabled` follows Settings > General, not the save.
+let hints = createHintState();
+const freshHints = () => createHintState({ enabled: prefs?.hints !== false });
+const clearClues = () => { hints = { ...hints, peeks: [], locks: {}, eliminated: [] }; };
 let surpriseConfig = null;
 const timers = new Set();
 const histories = new Map();
@@ -119,7 +125,16 @@ function updateUI(pendingRow = -1) {
   for (let row = 0; row < rows; row++) {
     const letters = guesses[row] ?? (row === guesses.length ? typed : '');
     const rowElement = makeRow(letters, row === pendingRow ? null : colors[row]);
-    if (row === guesses.length && !round.finished()) rowElement.dataset.active = '';
+    if (row === guesses.length && !round.finished()) {
+      rowElement.dataset.active = '';
+      // A locked slot shows a faint ghost of its letter until something is typed there.
+      if (menuOn) {
+        for (const [slot, letter] of Object.entries(hints.locks)) {
+          const tile = rowElement.children[slot - 1];
+          if (tile && !letters[slot - 1]) tile.dataset.ghost = letter;
+        }
+      }
+    }
     board.appendChild(rowElement);
   }
 
@@ -138,6 +153,8 @@ function updateUI(pendingRow = -1) {
   const remaining = rows - guesses.length;
   $('turnCounter').textContent = guesses.length + ' / ' + rows;
   $('turnBadge').textContent = remaining === 1 ? '1 try left' : remaining + ' tries left';
+  menu?.syncPlay();
+  hintsUI?.sync();
 }
 
 function setStatus(text, error = false) {
@@ -150,6 +167,7 @@ function setStatus(text, error = false) {
 function rejectGuess(text) {
   audio.play('invalid_word');
   setStatus(text, true);
+  if (menuOn && text.startsWith('Eliminated letters')) showToast(text);
   const row = board.children[round.guesses.length];
   row.classList.remove('shake');
   row.classList.add('invalid');
@@ -343,7 +361,8 @@ function saveProgress() {
     level,
     guesses: round.guesses,
     typed: round.typed,
-    answer: levelAnswers[level - 1] ?? null
+    answer: levelAnswers[level - 1] ?? null,
+    ...(menuOn ? { hints, hintLog: round.hintLog } : {})
   });
 }
 
@@ -370,6 +389,8 @@ function startLevel(number, saved = null) {
   round = puzzle.createRound(levelAnswers[level - 1] || '');
   isBusy = false;
   roundId = typeof saved?.id === 'string' ? saved.id : roundIdentifier();
+  // Clues belong to one round: a fresh round (next level, retry, restart) starts without them; stars carry over.
+  if (!saved) clearClues();
   round.restore(saved);
   saveProgress();
   $('puzzleNumber').textContent = 'Puzzle No. ' + (100 + puzzleId % 900);
@@ -386,6 +407,8 @@ function resetCampaign(restore = false) {
   puzzleId = identity();
   let saved = restore ? readStorage(progressKey()) : null;
   const next = resumeLevel(saved);
+  // Stars and clues come back with the save; a new game starts a fresh session.
+  hints = menuOn && saved?.hints ? { ...normalizeHintState(saved.hints), enabled: prefs.hints !== false } : freshHints();
   // The level was saved with another answer (steered or not): restart it only. Old saves carry no mark
   // except level 3, which was steered; any other unmarked level held its base answer.
   if (menuOn && saved) {
@@ -407,6 +430,12 @@ resultDialog.addEventListener('close', () => {
 });
 $('revealNow').addEventListener('click', () => reveal());
 $('continueGame').addEventListener('click', () => {
+  if (menuOn) {
+    // +1 star for a win on levels 1-4 (never for the steered surprise level); after the last level a new session begins.
+    const after = nextLevel(level);
+    if (after === 1) hints = freshHints();
+    else if (round.solved() && levelAnswers[level - 1] !== null) hints = awardLevelWin(hints);
+  }
   startLevel(nextLevel(level));
   board.focus();
 });
@@ -747,7 +776,12 @@ if (menuOn) {
     presets,
     testReveal: (lines, note, title) => { if (!isBusy) reveal(true, { message: lines, ending: note, headline: title }); },
     exportGame: downloadGame,
-    goHome: () => menu.go('home')
+    goHome: () => menu.go('home'),
+    setHints: value => {
+      hints = { ...hints, enabled: value };
+      saveProgress();
+      hintsUI?.sync();
+    }
   });
   menu = setupMenu({
     root,
@@ -762,7 +796,7 @@ if (menuOn) {
     puzzleNumber: () => 100 + puzzleId % 900,
     hasProgress: () => {
       const saved = readStorage(progressKey());
-      return Boolean(saved && (saved.level > 1 || saved.guesses?.length || saved.typed));
+      return Boolean(saved && (saved.level > 1 || saved.guesses?.length || saved.typed || saved.hints?.history?.length));
     },
     play: name => audio.play(name),
     openHelp: () => openHelp(),
@@ -770,12 +804,25 @@ if (menuOn) {
     getHistory: history,
     needsConfirm: () => {
       const saved = readStorage(progressKey());
-      return Boolean(saved && (saved.level > 1 || saved.guesses?.length));
+      return Boolean(saved && (saved.level > 1 || saved.guesses?.length || saved.hints?.history?.length));
     },
     isBusy: () => isBusy,
     newGame: () => resetCampaign(),
     focusGame: () => board.focus({ preventScroll: true })
   });
+  hintsUI = setupHintsUI({
+    getRound: () => round,
+    getState: () => hints,
+    canOpen: () => hints.enabled && !isBusy && !round.finished() && !menu.visible() && !document.querySelector('dialog[open]'),
+    commit: result => {
+      hints = result.state;
+      saveProgress();
+      updateUI();
+    },
+    focusGame: () => board.focus({ preventScroll: true }),
+    play: name => audio.play(name)
+  });
+  hintsUI.sync();
   // Preview deep links for the browser build.
   if (location.hash === '#menu-settings') settingsUI.show('general');
   if (location.hash === '#menu-surprise') settingsUI.show('surprise');

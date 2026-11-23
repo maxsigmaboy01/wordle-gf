@@ -14,12 +14,14 @@ import sfx_tile_flip from './assets/audio/sfx_tile_flip.mp3';
 import sfx_treasure_pop from './assets/audio/sfx_treasure_pop.mp3';
 import ui_pop_click from './assets/audio/ui/ui-pop-click.wav';
 import felt_tap_open from './assets/audio/ui/felt-tap-open.wav';
+import felt_tap_success from './assets/audio/ui/felt-tap-success.wav';
 import { readStorage, saveStorage } from './storage.js';
 
 const effects = {
   correct_letter: sfx_correct_letter,
   game_over_fakeout: sfx_game_over_fakeout,
   guess_submitted: sfx_guess_submitted,
+  hint_used: felt_tap_success,
   invalid_word: sfx_invalid_word,
   key_backspace: ui_pop_click,
   key_enter: felt_tap_open,

@@ -35,10 +35,9 @@ export function setupDinoFx({ reducedMotion }) {
   scheduleBlink();
 
   document.addEventListener('mouseover', event => {
-    const target = event.target.closest?.('.home-mascot, .side-dino, .aside-mascot');
+    const target = event.target.closest?.('.home-mascot, .side-dino, .play-mascot');
     if (!target || target.contains(event.relatedTarget)) return;
-    if (target.classList.contains('aside-mascot')) playFx(document.getElementById('playMascot'), 'tail_wag');
-    else playFx(target, 'wave');
+    playFx(target, target.classList.contains('play-mascot') ? 'tail_wag' : 'wave');
   });
 
   // Dispatched by app.js after a guess is graded and when a level is solved.

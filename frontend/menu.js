@@ -24,8 +24,8 @@ import { initToast, showToast } from './toast.js';
 import { el } from './views.js';
 
 export const themeCards = [
-  ['classic', 'Classic', 'The original, cozy look.', classicThumb],
-  ['christmas', 'Christmas', 'A cozy holiday edition.', christmasThumb],
+  ['classic', 'Classic Meadow', 'The original, cozy look.', classicThumb],
+  ['christmas', 'Christmas Village', 'A cozy holiday edition.', christmasThumb],
   ['spring', 'Spring Blossom', 'Fresh and full of blooms.', springThumb],
   ['halloween', 'Halloween', 'Spooky, but still cute.', halloweenThumb],
   ['space', 'Space Night', 'A starry adventure.', spaceThumb],
@@ -33,6 +33,8 @@ export const themeCards = [
   ['valentine', 'Valentine', 'Sweet and a little extra.', valentineThumb],
   ['rainy', 'Rainy Day', 'Cozy drizzle vibes.', rainyThumb]
 ];
+
+export const themeName = id => themeCards.find(card => card[0] === id)?.[1] ?? '';
 
 export function menuEnabled() {
   if (document.getElementById('love-puzzle')?.dataset.mode === 'play') return false;
@@ -73,39 +75,42 @@ export function setupMenu(app) {
     '<button type="button" class="menu-btn primary" data-confirm="yes">New game</button></div>';
   document.body.append(confirmDialog);
 
+  // Pause overlay: a native modal dialog, so the board gets no keys while it is open and it dims everything behind it.
+  const pauseDialog = document.createElement('dialog');
+  pauseDialog.className = 'pause-dialog';
+  pauseDialog.id = 'pauseDialog';
+  pauseDialog.dataset.menuOnly = '';
+  pauseDialog.setAttribute('aria-labelledby', 'pauseTitle');
+  const pauseItems = [['resume', 'RESUME'], ['new-game', 'NEW GAME'], ['help', 'HOW TO PLAY'], ['settings', 'SETTINGS'], ['home', 'HOME']];
+  pauseDialog.innerHTML = '<h2 class="pause-title" id="pauseTitle">PAUSED</h2>' +
+    '<nav class="home-menu" id="pauseMenu" role="menu" aria-label="Pause menu">' +
+    pauseItems.map(([action, label]) => '<button type="button" role="menuitem" tabindex="-1" class="home-item" data-menu="' + action + '">' + cursorSvgText() + '<span>' + label + '</span></button>').join('') +
+    '</nav><p class="pause-hint">ESC TO RESUME</p>';
+  document.body.append(pauseDialog);
+  function cursorSvgText() {
+    return '<svg class="home-cursor" viewBox="0 0 4 7" aria-hidden="true" shape-rendering="crispEdges"><path d="M0 0h1v1h1v1h1v1h1v1H3v1H2v1H1v1H0z" fill="currentColor"/></svg>';
+  }
+
   // Quit only makes sense inside the app.
   const invoke = tauri?.core?.invoke;
   if (!invoke) screen.querySelector('[data-menu="quit"]').remove();
 
   // ---- Play screen inside the app shell (menu mode only) ----------------------
-  // The same sidebar as Home, a header, the board card and a side panel. All of it is built here so
-  // the web player, iOS and exported HTML never see it; `data-menu-only` / `data-menu-wrap` mark what
-  // the export strips or unwraps (see downloadGame in app.js).
+  // A focused view: thin HUD on top, the board card centered, the mascots standing beside it. No sidebar.
+  // All of it is built here so the web player, iOS and exported HTML never see it; `data-menu-only` /
+  // `data-menu-wrap` mark what the export strips or unwraps (see downloadGame in app.js).
   const phone = $('puzzlePhone');
-  const playSide = sideTemplate.cloneNode(true);
-  playSide.id = 'playSide';
-  playSide.dataset.menuOnly = '';
-  playSide.querySelector('[data-menu="play"]').setAttribute('aria-current', 'page');
-
-  const legend = [['green', 'Right letter, right place.'], ['yellow', 'Right letter, wrong place.'], ['gray', 'Not in the word.']];
-  const playHead = el('header', 'play-head');
-  playHead.dataset.menuOnly = '';
-  playHead.innerHTML = '<div class="play-head-text"><p class="eyebrow" id="playEyebrow"></p>' +
-    '<h1>Find the hidden word.</h1>' +
-    '<p class="play-sub"><strong id="playLevel"></strong><progress id="playTrack" aria-label="Level progress"></progress>' +
-    '<span>Six tries. Five letters. You know the drill.</span></p></div>' +
-    '<div class="play-head-actions">' +
-    '<button type="button" class="menu-btn" data-menu="help"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg><span>Rules</span></button>' +
-    '<button type="button" class="menu-btn" data-menu="new-game"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg><span>New</span></button></div>';
-  const playAside = el('aside', 'play-aside');
-  playAside.dataset.menuOnly = '';
-  playAside.setAttribute('aria-label', 'Hints');
-  playAside.innerHTML = '<div class="aside-mascot"><img id="playMascot" alt="" width="160" height="160"><b>You got this!</b></div>' +
-    '<ul class="legend" aria-label="Tile colors">' +
-    legend.map(([tone, text]) => '<li><i class="chip ' + tone + '" aria-hidden="true"></i>' + text + '</li>').join('') + '</ul>' +
-    '<p class="aside-hint"><svg class="ic" aria-hidden="true"><use href="#i-keyboard"/></svg><span>Physical keyboard works, too.<br>Press Enter to submit your guess.</span></p>';
-  // The theme's companion keeps the dino company: small in the play panel, and on Home it stands
-  // opposite the dino so the two flank the menu. Themes without one show nothing (no src, so CSS hides it).
+  const hud = el('header', 'play-hud');
+  hud.dataset.menuOnly = '';
+  hud.innerHTML = '<div class="hud-left"><button type="button" class="hud-btn" data-menu="pause" aria-label="Pause menu" title="Pause (Esc)"><svg class="ic" aria-hidden="true"><use href="#i-pause"/></svg></button></div>' +
+    '<div class="hud-center" role="status"><span class="hud-level"><span class="hud-word">Level</span><b id="hudLevel"></b></span>' +
+    '<span class="hud-pips" id="hudPips" aria-hidden="true"></span><span class="hud-tries" id="hudTries"></span>' +
+    '<span class="hud-stars" id="hudStars" role="img"><svg class="star" aria-hidden="true"><use href="#i-star"/></svg><b id="hudStarCount"></b></span></div>' +
+    '<div class="hud-right"><span class="hud-puzzle" id="hudPuzzle"></span>' +
+    '<button type="button" class="hud-btn" id="hudTheme" data-menu="themes" aria-label="Change theme" title="Theme"><svg class="ic" aria-hidden="true"><use href="#i-palette"/></svg></button>' +
+    '<button type="button" class="hud-btn hud-sound" id="hudSound" aria-pressed="true" aria-label="Sound" title="Sound"><svg class="ic" aria-hidden="true"><use href="#i-sound"/></svg></button></div>';
+  // The theme's companion keeps the dino company: on Home it stands opposite the dino, and on the play
+  // screen it stands opposite the dino beside the board. Themes without one show nothing (no src, so CSS hides it).
   const companions = {
     christmas: { loop: santaLoop, still: santaStill },
     spring: { loop: bunnyLoop, still: bunnyStill },
@@ -116,29 +121,62 @@ export function setupMenu(app) {
   homeFriend.dataset.menuOnly = '';
   homeFriend.setAttribute('aria-hidden', 'true');
   $('menuMascot').parentElement.before(homeFriend);
-  for (const host of [playAside.querySelector('.aside-mascot'), homeFriend]) {
+  const sideL = el('div', 'play-side play-side-l');
+  const sideR = el('div', 'play-side play-side-r');
+  for (const side of [sideL, sideR]) {
+    side.dataset.menuOnly = '';
+    side.setAttribute('aria-hidden', 'true');
+  }
+  const mascot = el('img', 'play-mascot');
+  mascot.id = 'playMascot';
+  mascot.alt = '';
+  mascot.width = mascot.height = 160;
+  sideL.append(mascot);
+  for (const host of [sideR, homeFriend]) {
     const friend = el('img', 'companion');
     friend.alt = '';
     friend.width = friend.height = 512;
     host.append(friend);
   }
+  // The treasure chest stands on the scene floor on the right: full size alone, small beside a companion.
+  const chest = el('img', 'play-chest');
+  chest.alt = '';
+  chest.width = 130;
+  chest.height = 113;
+  chest.src = document.querySelector('.mascot-chest').src;
+  // Wide screens only (CSS): the theme name, a quiet label rather than a panel.
+  const themePill = el('span', 'theme-pill');
+  sideR.append(chest, themePill);
   const playCard = el('div', 'play-card');
   playCard.dataset.menuWrap = '';
-  const playBody = el('div', 'play-body');
-  playBody.dataset.menuWrap = '';
-  const playMain = el('div', 'play-main');
-  playMain.dataset.menuWrap = '';
-  playCard.append(phone.querySelector('.meter'), $('board'), phone.querySelector('.status-slot'), $('keyboard'), $('viewResult'));
-  playBody.append(playCard, playAside);
-  playMain.append(playHead, playBody);
-  phone.querySelector('.instructions').after(playMain);
-  phone.prepend(playSide);
+  const playStage = el('div', 'play-stage');
+  playStage.dataset.menuWrap = '';
+  const cardHead = el('div', 'card-head');
+  cardHead.dataset.menuOnly = '';
+  cardHead.innerHTML = '<span class="card-label">Find the five-letter word</span>' +
+    '<button type="button" class="hint-btn" id="hintBtn" aria-haspopup="dialog" title="Hints (?)"><span>Hints</span>' +
+    '<svg class="star" aria-hidden="true"><use href="#i-star"/></svg><b id="hintBtnCount"></b></button>';
+  const clueRow = el('div', 'clue-row');
+  clueRow.id = 'clueRow';
+  clueRow.dataset.menuOnly = '';
+  clueRow.setAttribute('role', 'list');
+  clueRow.setAttribute('aria-label', 'Hints used');
+  playCard.append(cardHead, phone.querySelector('.meter'), $('board'), phone.querySelector('.status-slot'), clueRow, $('keyboard'), $('viewResult'));
+  playStage.append(sideL, playCard, sideR);
+  phone.querySelector('.instructions').after(playStage);
+  phone.prepend(hud);
 
+  // HUD readout: level, pips, tries, puzzle number and the sound toggle. Called whenever the board redraws.
   function syncPlay() {
-    $('playEyebrow').textContent = 'Daily challenge \u00b7 Puzzle #' + app.puzzleNumber();
-    $('playLevel').textContent = $('levelNumber').textContent;
-    $('playTrack').max = $('levelTrack').max;
-    $('playTrack').value = $('levelTrack').value;
+    const max = Number($('levelTrack').max) || 5, now = Number($('levelTrack').value) || 1;
+    $('hudLevel').textContent = now + ' / ' + max;
+    if ($('hudPips').children.length !== max) $('hudPips').replaceChildren(...Array.from({ length: max }, () => document.createElement('i')));
+    [...$('hudPips').children].forEach((pip, index) => {
+      pip.className = index < now - 1 ? 'done' : index === now - 1 ? 'now' : '';
+    });
+    $('hudTries').textContent = $('turnBadge').textContent.replace(' left', '');
+    $('hudPuzzle').textContent = '#' + app.puzzleNumber();
+    $('hudSound').setAttribute('aria-pressed', String(soundControl.checked));
   }
 
   // The chosen mascot (Settings > Mascot) on Home, the sidebar and the play panel.
@@ -152,6 +190,8 @@ export function setupMenu(app) {
     for (const img of document.querySelectorAll('#menuMascot, .side-dino, #playMascot')) {
       paintMascot(img, id, reducedMotion.matches, seasons.current());
     }
+    sideR.classList.toggle('has-friend', Boolean(friend));
+    themePill.textContent = themeName(seasons.current());
   }
 
   // The sidebar brand mark is the app icon picked in Settings (the web player keeps its own tile mark).
@@ -161,39 +201,66 @@ export function setupMenu(app) {
   }
 
   // ---- Home: a retro title screen with a cursor menu ----------------------------
-  const homeMenu = $('homeMenu');
-  const items = [...homeMenu.querySelectorAll('.home-item')];
   const usable = item => !item.disabled && item.getAttribute('aria-disabled') !== 'true';
-  let cursor = 0;
+
+  // One cursor menu component, used by Home and the pause overlay: a highlighted row, a blinking arrow,
+  // arrow keys / W S to move, Enter / Space to pick, mouse hover to move and click to pick.
+  function cursorMenu(nav, { onMove, onPick }) {
+    const list = [...nav.querySelectorAll('.home-item')];
+    let at = 0;
+    function set(index, { quiet = false } = {}) {
+      const item = list[index];
+      if (!item || !usable(item)) return;
+      const moved = index !== at;
+      at = index;
+      for (const other of list) other.classList.toggle('is-sel', other === item);
+      nav.setAttribute('aria-activedescendant', item.id);
+      if (moved && !quiet) onMove?.(item);
+    }
+    function move(step) {
+      let index = at;
+      for (let tries = 0; tries < list.length; tries++) {
+        index = (index + step + list.length) % list.length;
+        if (usable(list[index])) return set(index);
+      }
+    }
+    const keys = { ArrowDown: 1, s: 1, S: 1, ArrowUp: -1, w: -1, W: -1 };
+    // Returns true when the key was a menu key.
+    function key(event) {
+      const step = keys[event.key];
+      if (step) {
+        event.preventDefault();
+        move(step);
+      } else if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        if (!event.repeat) onPick(list[at]);
+      } else return false;
+      return true;
+    }
+    list.forEach((item, index) => {
+      item.id ||= nav.id + 'Item' + index;
+      item.addEventListener('mouseenter', () => set(index));
+    });
+    return { items: list, set, move, key, get at() { return at; } };
+  }
+
   let hopTimer = 0;
-
-  function setCursor(index, { quiet = false } = {}) {
-    const item = items[index];
-    if (!item || !usable(item)) return;
-    const moved = index !== cursor;
-    cursor = index;
-    for (const other of items) other.classList.toggle('is-sel', other === item);
-    homeMenu.setAttribute('aria-activedescendant', item.id);
-    if (!moved || quiet) return;
-    app.play('key_tap_b');
-    const mascot = $('menuMascot');
-    if (mascot.dataset.mascot === 'classic') fx.playFx(mascot, 'wave');
-    else if (!reducedMotion.matches) {
-      mascot.classList.remove('is-hop');
-      void mascot.offsetWidth;
-      mascot.classList.add('is-hop');
-      clearTimeout(hopTimer);
-      hopTimer = setTimeout(() => mascot.classList.remove('is-hop'), 420);
-    }
-  }
-
-  function moveCursor(step) {
-    let index = cursor;
-    for (let tries = 0; tries < items.length; tries++) {
-      index = (index + step + items.length) % items.length;
-      if (usable(items[index])) return setCursor(index);
-    }
-  }
+  const home = cursorMenu($('homeMenu'), {
+    onMove() {
+      app.play('key_tap_b');
+      const mascot = $('menuMascot');
+      if (mascot.dataset.mascot === 'classic') fx.playFx(mascot, 'wave');
+      else if (!reducedMotion.matches) {
+        mascot.classList.remove('is-hop');
+        void mascot.offsetWidth;
+        mascot.classList.add('is-hop');
+        clearTimeout(hopTimer);
+        hopTimer = setTimeout(() => mascot.classList.remove('is-hop'), 420);
+      }
+    },
+    onPick: pick
+  });
+  const homeMenu = $('homeMenu');
 
   const shown = () => !screen.hidden;
   const visible = () => shown() || Boolean(app.settings?.visible()) || progress.visible();
@@ -209,7 +276,7 @@ export function setupMenu(app) {
     paintMascots();
   }
 
-  const overlays = () => [...app.dialogs.slice(1), themeDialog, confirmDialog];
+  const overlays = () => [...app.dialogs.slice(1), themeDialog, confirmDialog, pauseDialog];
 
   function closeOverlays() {
     for (const dialog of overlays()) if (dialog.open) dialog.close();
@@ -226,7 +293,7 @@ export function setupMenu(app) {
     screen.hidden = false;
     refresh();
     // Resume is the natural first stop when there is a game to go back to.
-    setCursor(app.hasProgress() ? items.indexOf($('menuContinue')) : 0, { quiet: true });
+    home.set(app.hasProgress() ? home.items.indexOf($('menuContinue')) : 0, { quiet: true });
     homeMenu.focus({ preventScroll: true });
   }
 
@@ -272,6 +339,25 @@ export function setupMenu(app) {
     app.play('menu_open');
     confirmDialog.showModal();
     confirmDialog.querySelector('[data-confirm="no"]').focus();
+  }
+
+  // ---- Pause ----------------------------------------------------------------------
+  let pauseMenu = null;
+  function gameVisible() {
+    return screen.hidden && !app.settings?.visible() && !progress.visible() && !app.dialogs[0].open;
+  }
+  function openPause() {
+    if (pauseDialog.open || !gameVisible() || document.querySelector('dialog[open]')) return;
+    app.play('menu_open');
+    pauseDialog.showModal();
+    pauseMenu.set(0, { quiet: true });
+    pauseDialog.focus({ preventScroll: true });
+  }
+  function closePause() {
+    if (!pauseDialog.open) return;
+    pauseDialog.close();
+    app.play('menu_open');
+    if (gameVisible()) app.focusGame();
   }
 
   function buildThemeGrid() {
@@ -324,6 +410,8 @@ export function setupMenu(app) {
       case 'continue': case 'start': return showGame();
       case 'play': return showGame();
       case 'new-game': return askNewGame();
+      case 'pause': return openPause();
+      case 'resume': return closePause();
       case 'themes': return openThemes();
       case 'settings':
         if (blocked()) return;
@@ -354,39 +442,50 @@ export function setupMenu(app) {
   buildThemeGrid();
   select(pending);
 
-  for (const area of [screen, playSide, playHead, progress.screen]) {
+  for (const area of [screen, hud, pauseDialog, progress.screen]) {
     area.addEventListener('click', event => {
       const target = event.target.closest('[data-menu]');
       if (!target || !usable(target)) return;
-      if (target.classList.contains('home-item')) pick(target);
+      if (target.classList.contains('home-item') && area !== pauseDialog) pick(target);
+      else if (area === pauseDialog) pickPause(target);
       else go(target.dataset.menu);
     });
   }
-  items.forEach((item, index) => {
-    item.id ||= 'homeItem' + index;
-    item.addEventListener('mouseenter', () => setCursor(index));
-  });
+  pauseMenu = cursorMenu($('pauseMenu'), { onMove: () => app.play('key_tap_b'), onPick: pickPause });
   // The dialogs and screens play their own opening sound; the rest get a soft select blip here.
+  function pickPause(item) {
+    const action = item?.dataset.menu;
+    if (!action) return;
+    if (action === 'resume') closePause();
+    else go(action);
+  }
   function pick(item) {
     const action = item.dataset.menu;
     if (action === 'continue' || action === 'quit' || (action === 'new-game' && !app.needsConfirm())) app.play('menu_open');
     go(action);
   }
   // Home keys: arrows / W S move, Enter / Space pick. Everything else (letters!) is ignored, never typed into the board.
-  const homeKeys = { ArrowDown: 1, s: 1, S: 1, ArrowUp: -1, w: -1, W: -1 };
   document.addEventListener('keydown', event => {
     if (!shown() || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
     if (document.querySelector('dialog[open]') || event.target.closest?.('input, textarea, select')) return;
-    const step = homeKeys[event.key];
-    if (step) {
+    home.key(event);
+  });
+  // Pause keys: the same cursor keys; Esc closes. The dialog is modal, so nothing reaches the board.
+  pauseDialog.addEventListener('keydown', event => {
+    if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
+    if (event.key === 'Escape') {
       event.preventDefault();
-      moveCursor(step);
-    } else if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      if (!event.repeat) {
-        pick(items[cursor]);
-      }
-    }
+      event.stopPropagation();
+      closePause();
+    } else if (pauseMenu.key(event)) event.stopPropagation();
+  });
+  pauseDialog.addEventListener('cancel', event => { event.preventDefault(); closePause(); });
+  // Esc on the play screen opens the pause menu (Home is reachable from it).
+  document.addEventListener('keydown', event => {
+    if (event.key !== 'Escape' || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
+    if (!gameVisible() || document.querySelector('dialog[open]')) return;
+    event.preventDefault();
+    go('pause');
   });
   // Space activates a focused button on key-up; Home already handled it on key-down.
   document.addEventListener('keyup', event => {
@@ -395,19 +494,25 @@ export function setupMenu(app) {
   document.addEventListener('appiconchange', paintBrand);
   paintBrand();
   $('homeBtn').addEventListener('click', () => go('home'));
+  $('hudSound').addEventListener('click', () => {
+    soundControl.checked = !soundControl.checked;
+    soundControl.dispatchEvent(new Event('change', { bubbles: true }));
+  });
   $('menuSound').addEventListener('change', event => {
     soundControl.checked = event.target.checked;
     soundControl.dispatchEvent(new Event('change', { bubbles: true }));
   });
-  soundControl.addEventListener('change', () => { $('menuSound').checked = soundControl.checked; });
+  soundControl.addEventListener('change', () => { $('menuSound').checked = soundControl.checked; syncPlay(); });
   seasonSelect.addEventListener('change', () => {
     select(seasons.current());
     noteTheme(seasons.current());
     scene.render();
     paintMascots();
     progress.refresh();
-    showToast(seasons.label() + ' applied!');
+    showToast(themeName(seasons.current()) + ' applied!');
   });
+  pauseDialog.addEventListener('click', event => { if (event.target === pauseDialog) closePause(); });
+  pauseDialog.addEventListener('close', () => { if (gameVisible()) app.focusGame(); });
   confirmDialog.addEventListener('click', event => {
     const choice = event.target.closest('[data-confirm]')?.dataset.confirm;
     if (event.target === confirmDialog || choice === 'no') confirmDialog.close();
@@ -425,6 +530,8 @@ export function setupMenu(app) {
   $('themeCancel').addEventListener('click', () => themeDialog.close());
   $('themeX').addEventListener('click', () => themeDialog.close());
   themeDialog.addEventListener('click', event => { if (event.target === themeDialog) themeDialog.close(); });
+  // Changing the theme in the middle of a round only repaints; hand the keys back to the board afterwards.
+  themeDialog.addEventListener('close', () => { if (gameVisible()) app.focusGame(); });
   grid.addEventListener('keydown', event => {
     const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
     if (!step) return;

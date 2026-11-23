@@ -35,6 +35,8 @@ export function createPuzzle({ words, answers }) {
     const colors = [];
     let possibleAnswers = candidates;
     let typed = '';
+    const hintLog = [];
+    const eliminated = new Set();
 
     const solved = () => colors.at(-1)?.every(rank => rank === 2) ?? false;
     const finished = () => guesses.length === ATTEMPTS || solved();
@@ -70,6 +72,8 @@ export function createPuzzle({ words, answers }) {
     function guessError(word) {
       if (word.length !== WORD_LENGTH) return 'Enter a five-letter word.';
       if (!isWord(word)) return 'Not in word list.';
+      const blocked = [...eliminated].filter(letter => word.includes(letter));
+      if (blocked.length) return `Eliminated letters: ${blocked.join(', ')}.`;
       if (guesses.includes(word)) return 'You already guessed that word.';
       return '';
     }
@@ -96,12 +100,43 @@ export function createPuzzle({ words, answers }) {
       return true;
     }
 
+    // Hint facts: {type:'peek',letter} | {type:'lock',letter,slot 1-5} | {type:'eliminate',letters}.
+    // A steered round (no fixed answer) narrows its candidates so later feedback stays consistent.
+    // Returns false when the fact is malformed or would leave no candidate (then it is ignored).
+    function applyHintFacts(fact) {
+      let keep;
+      if (fact?.type === 'peek' && /^[A-Z]$/.test(fact.letter)) {
+        keep = word => word.includes(fact.letter);
+      } else if (fact?.type === 'lock' && /^[A-Z]$/.test(fact.letter) && fact.slot >= 1 && fact.slot <= WORD_LENGTH) {
+        keep = word => word[fact.slot - 1] === fact.letter;
+      } else if (fact?.type === 'eliminate' && Array.isArray(fact.letters) && fact.letters.every(l => /^[A-Z]$/.test(l))) {
+        keep = word => !fact.letters.some(letter => word.includes(letter));
+      } else return false;
+      if (!answer) {
+        const next = possibleAnswers.filter(keep);
+        if (!next.length) return false;
+        possibleAnswers = next;
+      }
+      if (fact.type === 'eliminate') for (const letter of fact.letters) eliminated.add(letter);
+      hintLog.push({ at: guesses.length, fact: JSON.parse(JSON.stringify(fact)) });
+      return true;
+    }
+
+    // Candidates still consistent with feedback and hints (a fixed round has just its answer).
+    const candidateAnswers = () => (answer ? [answer] : possibleAnswers.slice());
+
     function restore(saved) {
       if (!Array.isArray(saved?.guesses)) return;
+      const log = Array.isArray(saved.hintLog) ? saved.hintLog : [];
+      const replayHints = () => {
+        for (const entry of log) if (entry?.at === guesses.length) applyHintFacts(entry.fact);
+      };
+      replayHints();
       for (const guess of saved.guesses.slice(0, ATTEMPTS)) {
         if (typeof guess !== 'string' || guessError(guess) || finished()) break;
         typed = guess;
         submit();
+        replayHints();
       }
       if (!finished() && typeof saved.typed === 'string' && /^[A-Z]{0,5}$/.test(saved.typed)) {
         typed = saved.typed;
@@ -115,6 +150,10 @@ export function createPuzzle({ words, answers }) {
       type,
       submit,
       restore,
+      applyHintFacts,
+      candidateAnswers,
+      steered: !answer,
+      hintLog,
       solved,
       finished
     };
